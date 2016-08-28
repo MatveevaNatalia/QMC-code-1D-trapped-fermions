@@ -1,5 +1,5 @@
-#ifndef COORDINATES_H
-#define COORDINATES_H
+#ifndef LOCALS_H
+#define LOCALS_H
 
 #include "qmc.h"
 #include "Algorithm.h"
@@ -10,19 +10,21 @@
 
 using namespace std;
 
-class Coordinates{
+class Locals{
 private:
     int num_comp_saved, num_part_saved, num_walk_saved;
     long seed_saved;
     double alfa_saved, step_jump;
 public:
-    double ****x, **xaux, **xMT;
-    Coordinates(ParamModel param_model);
+    double ****total, **auxil, **metrop;
+    Locals(ParamModel param_model);
     void ReadInitial(const string & startingConfig);
 
     void GenerateInitial();
 
     void GaussianJump(int ntemps, int in, int i_VMC, int ipop, double ****FF);
+
+    //GaussianJump(int ntemps, int in, int i_VMC, int ipop, Locals& force);
 
     void Accept();
 
@@ -30,8 +32,12 @@ public:
 
     void WalkerMatch(int jpop, int io);
 
-   ~Coordinates();
+    void SetZeroForceTotal(int in);
+
+    void SetZeroForce();
+
+   ~Locals();
 
 };
 
-#endif // COORDINATES_H
+#endif // LOCALS_H

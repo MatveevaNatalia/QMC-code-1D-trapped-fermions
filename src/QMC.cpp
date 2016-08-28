@@ -10,447 +10,34 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "Locals.h"
 #include "Algorithm.h"
 #include "Energy.h"
 #include "g2D.h"
 #include "dens.h"
 #include "OBDM.h"
+#include "MomDistr.h"
+#include "DistrR.h"
 #include "Statistics.h"
 #include "Wave_fun.h"
 #include "qmc.h"
 
 using namespace std;
-#define BIG  1e30 
-const int dmnpop = 300;
-const double pi = 3.141592653589793; 
 
 void Energy::SetZero(){
     tot = 0; pot = 0; kin = 0;
 };
 
-
-class DistributionR{
-    int stored_num_points;
-    void setzero(double * x){
-        for(int i = 0; i < stored_num_points+1; i++) x[i] = 0;
-    }
-
-public:
-    double *dr, *dra, *draMT;
-    double ***drlocal;
-
-    DistributionR(int num_points){
-        stored_num_points = num_points;
-        dr = new double[num_points+1];
-        dra = new double[num_points+1];
-        draMT = new double[num_points+1];
-
-        drlocal = new double**[num_points+1];
-        for(int i = 0; i < (num_points+1); i++){
-            drlocal[i] = new double*[dmnpop];
-            for(int j = 0; j < dmnpop; j++ ) drlocal[i][j] =  new double[2];
-        }
-    }
-
-    void SetZero(){
-        setzero(dr);
-    }
-
-    void SetZeroAx(){
-        setzero(dra);
-        setzero(draMT);
-    }
-
-    void Accept(){
-        for(int i = 1; i < (stored_num_points+1); i++)
-            dra[i] = draMT[i];
-    }
-
-   void NotAccept(int ipop, int in){
-       for(int i = 1; i < (stored_num_points+1); i++)
-           dra[i] = drlocal[i][ipop][in];
-   }
-
-   void WalkerMatch(int jpop, int io){
-       for(int i = 1; i < (stored_num_points+1); i++)
-           drlocal[i][jpop][io] = dra[i];
-   }
-
-   void WalkerCollect(int nsons){
-       for(int i = 1; i < (stored_num_points+1); i++)
-           dr[i] = dr[i] + nsons * dra[i];
-   }
-
-   void NormalizationGR(int ngr, int ncomp, int np, double step){
-       double r1;
-       for (int ir = 1; ir < (stored_num_points+1); ir++)
-       {
-           r1 = float(ir) * step;
-           if (ngr > 0)
-               dr[ir] = dr[ir]/float(ngr);
-           else
-               dr[ir] = 0.0;
-           dr[ir] = dr[ir]/(ncomp*np*step);
-       }
-   }
-
-   void NormalizationNR(int ngr, float step){
-       double r1;
-       for (int ir = 1; ir < (stored_num_points+1); ir++)
-       {
-           r1 = float(ir) * step;
-           if (ngr > 0)
-               dr[ir] = dr[ir]/float(ngr);
-           else
-               dr[ir] = 0.0;
-
-           dr[ir] = dr[ir]/(2*step);
-       }
-   }
-
-    ~DistributionR(){
-        delete[] dra;
-        delete[] dr;
-        delete[] draMT;
-        for(int i = 0; i < (stored_num_points+1); i++)
-        {
-            for (int j = 0; j < dmnpop; j++) delete [] drlocal[i][j];
-            delete [] drlocal[i];
-        }
-        delete [] drlocal;
-
-     }
-};
-
-class OBDM{
-private:
-    int stored_num_points;
-    void setzero(double * x){
-        for(int i = 0; i < stored_num_points+1; i++) x[i] = 0;
-    }
-public:
-    double *fr, *fra, *nfr, *nfra, **frlocal, **nfrlocal;
-    OBDM(int num_points){
-        stored_num_points = num_points;
-        fr = new double[num_points+1];
-        fra = new double[num_points+1];
-        nfr = new double[num_points+1];
-        nfra = new double[num_points+1];
-
-        frlocal = new double*[num_points+1];
-        for(int i = 0; i < (num_points+1); i++) frlocal[i] = new double[dmnpop];
-
-        nfrlocal = new double*[num_points+1];
-        for(int i = 0; i < (num_points+1); i++) nfrlocal[i] = new double[dmnpop];
-    }
-
-    void SetZero(){
-        setzero(fr);
-        setzero(nfr);
-    }
-
-    void SetZeroAx(){
-        setzero(fra);
-        setzero(nfra);
-    }
-
-    void NotAccept(int ipop){
-        for(int i = 1; i < (stored_num_points+1); i++)
-        {
-            fra[i] = frlocal[i][ipop];
-            nfra[i] = nfrlocal[i][ipop];
-        }
-    }
-
-    void WalkerMatch(int jpop){
-        for(int i = 1; i < (stored_num_points+1); i++)
-        {
-            frlocal[i][jpop] = fra[i];
-            nfrlocal[i][jpop] = nfra[i];
-        }
-    }
-
-    void WalkerCollect(int nsons){
-        for(int i = 1; i < (stored_num_points+1); i++)
-        {
-
-            fr[i] = fr[i] + nsons * fra[i];
-            nfr[i] = nfr[i] + nsons * nfra[i];
-        }
-    }
-
-    void Normalization(){
-        for (int ir = 1; ir < (stored_num_points+1); ir++)
-            if(nfr[ir] > 0) fr[ir] = fr[ir]/float(nfr[ir]);
-    }
-
-
-
-    ~OBDM(){
-        delete [] fr;
-        delete [] fra;
-        delete [] nfr;
-        delete [] nfra;
-
-        for(int i = 0; i < (stored_num_points+1); i++)
-        delete [] frlocal[i];
-        delete [] frlocal;
-
-        for(int i = 0; i < (stored_num_points+1); i++)
-            delete [] nfrlocal[i];
-        delete [] nfrlocal;
-    }
-};
-
-
-class MomentDistr{
-private:
-    int stored_num_points;
-    void setzero(double * x){
-            for(int i = 0; i < stored_num_points; i++) x[i] = 0;
-    }
-public:
-    double *dnkup, *dnkupa, **dnkuplocal;
-
-    MomentDistr(int num_points){
-        stored_num_points = num_points;
-        dnkup = new double[num_points];
-        dnkupa = new double[num_points];
-
-        dnkuplocal = new double*[num_points];
-        for(int i = 0; i < num_points; i++) dnkuplocal[i] = new double[dmnpop];
-    }
-
-    void SetZero(){
-        setzero(dnkup);
-    }
-    void SetZeroAx(){
-        setzero(dnkupa);
-    }
-
-    void NotAccept(int ipop){
-        for(int i = 0; i < stored_num_points; i++)
-            dnkupa[i] = dnkuplocal[i][ipop];
-    }
-
-    void WalkerMatch(int jpop){
-        for(int i = 0; i < stored_num_points; i++)
-        {
-            dnkuplocal[i][jpop] = dnkupa[i];
-        }
-    }
-
-    void WalkerCollect(int nsons){
-        for(int i = 0; i < stored_num_points; i++)
-            dnkup[i] = dnkup[i] + dnkupa[i]*nsons;
-    }
-
-    void Normalization(int np, int nkuppt){
-        for(int ik = 0; ik < stored_num_points;ik++)
-            dnkup[ik] = dnkup[ik]*np/(float(nkuppt)); //why np is not clear
-    }
-
-
-    ~MomentDistr(){
-        delete [] dnkup;
-        delete [] dnkupa;
-
-        for(int i = 0; i < stored_num_points; i++)
-            delete [] dnkuplocal[i];
-        delete [] dnkuplocal;
-    }
-};
-
-class CorFun{
-public:
-    double step, max_value, num_points;
-};
-
-struct ParamModel{
-    int num_comp, num_part, num_walk;
-    long seed;
-    double scat_lenght, scat_lenght_bos, width, alfa;
-};
-
-
-class Coordinates{
-private:
-    int num_comp_saved, num_part_saved, num_walk_saved;
-    long seed_saved;
-    double alfa_saved, step_jump;
-public:
-    double ****x, **xaux, **xMT;
-    Coordinates(ParamModel param_model){
-
-        num_comp_saved = param_model.num_comp;
-        num_part_saved = param_model.num_part;
-        num_walk_saved = param_model.num_walk;
-        seed_saved = param_model.seed;
-        alfa_saved = param_model.alfa;
-        step_jump = alfa_saved/4.0;
-
-        xaux = new double*[num_comp_saved];
-        for(int i = 0; i < num_comp_saved; i++) xaux[i] = new double[num_part_saved];
-
-        x = new double***[num_comp_saved];
-        for(int i = 0; i < num_comp_saved; i++)
-        {
-            x[i] = new double**[num_part_saved];
-            for(int j = 0; j < num_part_saved; j++)
-            {
-                 x[i][j] = new double*[dmnpop];
-                 for(int m = 0; m < dmnpop; m++)
-                    x[i][j][m] = new double[2];
-            }
-        }
-
-        xMT = new double*[num_comp_saved];
-        for(int i = 0; i < num_comp_saved; i++) xMT[i] = new double[num_part_saved];
-
-//        xauxT = new double*[num_comp_saved];
-//        for(int i = 0; i < num_comp_saved; i++) xauxT[i] = new double[num_part_saved];
-
-   }
-   void ReadInitial(const string & startingConfig){
-       double etemp;
-       fstream filestr(startingConfig, fstream::in | fstream::out);
-       filestr>>setprecision(18);
-       filestr >> num_walk_saved;
-       //cout << num_walk_saved;
-       for (int ipop = 0; ipop < num_walk_saved; ipop++ )
-       {
-           filestr >> etemp;
-           for(int ic = 0; ic < num_comp_saved;ic++)
-           {
-               for(int ip = 0; ip < num_part_saved; ip++)
-               {
-                   filestr >> x[ic][ip][ipop][0];
-                   //if(ipop == 0)
-                     //  cout << x[ic][ip][ipop][0] << "\n";
-               }
-           }
-
-       }
-       filestr.close();
-   }
-
-   void GenerateInitial()
-   {
-       long seed = -13156;
-       for (int ipop = 0; ipop < num_walk_saved; ipop++ )
-       {
-           for(int ic = 0; ic < num_comp_saved; ic++)
-           {
-               for(int ip = 0; ip < num_part_saved; ip++) {x[ic][ip][ipop][0] = ran2(&seed);}
-
-           }
-       }
-
-       fstream outfile("../1D_Qt/Data/inprev.dat", fstream::out );
-       outfile << setprecision(17);
-       outfile<<num_walk_saved<<"\n";
-       for(int ipop = 0; ipop < num_walk_saved;ipop++)
-       {
-           outfile<<ipop<<"\n";
-           for(int ic = 0; ic < num_comp_saved; ic++)
-           {
-               for(int ip = 0; ip < num_part_saved; ip++)
-                   outfile<<x[ic][ip][ipop][0]<<"\n";
-           }
-       }
-       outfile.close();
-   }
-
-   void GaussianJump(int ntemps, int in, int i_VMC, int ipop, double ****FF){
-       double xgaus;
-
-       for (int ic = 0; ic < num_comp_saved; ic++)
-       {
-           for(int ip = 0; ip < num_part_saved; ip++)
-           {
-               if (ntemps > 1)
-                   Gauss1D(&xgaus, alfa_saved, &seed_saved);
-               else
-                   xgaus = 0.0;
-
-               if (i_VMC == 1){
-                   xMT[ic][ip] = x[ic][ip][ipop][in] + xgaus;
-
-               }
-               else
-                   xMT[ic][ip] = x[ic][ip][ipop][in] + xgaus + FF[ic][ip][ipop][in] * step_jump;
-           }
-        }
-   }
-
-   void Accept(){
-       for(int ic = 0; ic < num_comp_saved; ic++)
-       {
-           for(int ip = 0; ip < num_part_saved; ip++)
-           {
-               xaux[ic][ip] = xMT[ic][ip];
-           }
-       }
-   }
-
-    void NotAccept(int ipop, int in){
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++)
-                xaux[ic][ip] = x[ic][ip][ipop][in];
-        }
-    }
-
-    void WalkerMatch(int jpop, int io){
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++)
-                x[ic][ip][jpop][io] = xaux[ic][ip];
-         }
-    }
-
-
-   ~Coordinates(){
-       for(int i = 0; i < num_comp_saved; i++)
-       {
-           for(int j = 0; j < num_part_saved; j++)
-           {
-               for(int m = 0; m < dmnpop; m++)
-                   delete [] x[i][j][m];
-
-               delete[] x[i][j];
-            }
-              delete [] x[i];
-        }
-        delete [] x;
-
-       for(int i = 0; i < num_comp_saved; i++)
-         delete [] xaux[i];
-       delete [] xaux;
-
-
-       for(int i = 0; i < num_comp_saved; i++)
-         delete [] xMT[i];
-       delete [] xMT;
-
-   }
-
-};
-
-
-
-
 void run (const string & inFile, const string & startingConfig, const string & outDir )
 {
     Energy eav, epar, emean, enew, eold, emtnew;
-    double ewalk, etemp; // previously it was E
+    double ewalk;
 	long  kkk = -2175;
-    double alfa;
     double PsiTotal, fnew, fvella;
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
-    double xgaus, accrate;
+    double accrate;
 
-    CorFun pair_distr, obdm, dens_distr, mom_distr;
+    CorFunParam pair_distr, obdm, dens_distr, mom_distr;
 
     double Lmax;
 
@@ -459,26 +46,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
     ParamModel param_model;
     param_model.seed = kkk;
 
-
-
-//	double a; // multi-component scattering length in oscillatory units
-//	double aB; //in-component scattering length in oscillatory units, for fermions aB = 0
-
-//	int np;
     int nblck, niter;
 
-//	double dt, dte;
-
-    //int npop;
-
 	int init;
-
-//	int ncomp;
-
 	int icrit;
-
-//	double width;
-
 	string str;
 
 	int i_VMC, i_Smart = 0, i_Drift = 0, i_FNDMC, i_OBDM_1, i_OBDM_2=0, i_stat_cor;
@@ -496,7 +67,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     filestr2.close();
 
 
-    Coordinates coordinates(param_model);
+    Locals coordinates(param_model);
+    Locals force(param_model);
 
     pair_distr.step = pair_distr.max_value/pair_distr.num_points;
     obdm.step = obdm.max_value/obdm.num_points;
@@ -521,27 +93,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     outfile2<<" Lmax_McM= "<<Lmax<<"\n";
 
 	outfile2.close();
-
-//	alfa = dt;
-//	dte = dt * 0.25;
-
-
-
-//************************************************
-//	double ****x;
-//	double ** xaux;
-	double ** F;
-	
-//	double **elocal, **elocal1, **elocal2;
     Energy **elocal;
-
-
-//************************************************
-//	double **xauxT;
-	double ****FF;
-	double **flocal;
-//	double **xMT;
-    double **FMT;
+    double **flocal;
 
     DistributionR pair_distr_1(pair_distr.num_points);
     DistributionR pair_distr_2(pair_distr.num_points);
@@ -567,82 +120,16 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
     int ngr;
 
-/*    xaux = new double*[ncomp];
-	for(int i = 0; i < ncomp; i++) xaux[i] = new double[np];
-
-	x = new double***[ncomp];
-	for(int i = 0; i < ncomp; i++)
-	{
-		x[i] = new double**[np];
-		for(int j = 0; j < np; j++)
-		{
-			 x[i][j] = new double*[dmnpop];
-			 for(int m = 0; m < dmnpop; m++)
-				x[i][j][m] = new double[2];
-		}
-    }*/
-
-    FF = new double***[param_model.num_comp];
-    for(int i = 0; i < param_model.num_comp; i++)
-	{
-        FF[i] = new double**[param_model.num_part];
-        for(int j = 0; j < param_model.num_part; j++)
-		{
-			 FF[i][j] = new double*[dmnpop];
-			 for(int m = 0; m < dmnpop; m++)
-				FF[i][j][m] = new double[2];
-		}
-	}
-
 	flocal = new double*[dmnpop];
 	for(int i = 0; i < dmnpop; i++) flocal[i] = new double[2];
-
-/*	xMT = new double*[ncomp];
-    for(int i = 0; i < ncomp; i++) xMT[i] = new double[np];*/
-
-    FMT = new double*[param_model.num_comp];
-    for(int i = 0; i < param_model.num_comp; i++) FMT[i] = new double[param_model.num_part];
-
-    F = new double*[param_model.num_comp];
-    for(int i = 0; i < param_model.num_comp; i++) F[i] = new double[param_model.num_part];
-
-/*	xauxT = new double*[ncomp];
-    for(int i = 0; i < ncomp; i++) xauxT[i] = new double[np];*/
 
     elocal = new Energy*[dmnpop];
     for(int i = 0; i < dmnpop; i++) elocal[i] = new Energy[2];
 
-
-//    fold = new double[dmnpop];
-
-	
-
-//********************************************************
     if(init == 1)
-    {
-/*        fstream filestr(startingConfig, fstream::in | fstream::out);
-		filestr>>setprecision(18);
-		filestr >> npop;
-		for (int ipop = 0; ipop < npop; ipop++ )
-		{
-			filestr >> etemp;
-			for(int ic = 0; ic < ncomp;ic++)
-			{
-   				for(int ip = 0; ip < np; ip++)
-				{
-			  		filestr >> x[ic][ip][ipop][0];
-					//if(ipop==96){cout<<x[ic][ip][ipop][0]<<"\n";}
-				}
-			}
-		}
-        filestr.close(); */
-    coordinates.ReadInitial(startingConfig);
-    }
-    //else {Initial(x, npop, ncomp, np);}
-    else {coordinates.GenerateInitial();}
-
-
-//*********************************************************
+        coordinates.ReadInitial(startingConfig);
+    else
+        coordinates.GenerateInitial();
 
 
 	ntemps = 0;
@@ -653,23 +140,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 	nacc = 0;
 	nprova = 0;
 
-    for(int j = 0; j < param_model.num_walk; j++ ) // It will be in constructor of Force
-	{
-        for(int ic = 0; ic < param_model.num_comp; ic++)
-		{
-            for(int ip = 0; ip < param_model.num_part; ip++)
-			{
-				FF[ic][ip][j][in] = 0.0;
-			}
-		}
-	}
-
-//    cout << coordinates.x[0][0][0][0] <<"\n";
+    force.SetZeroForceTotal(in);
 
 for(int iblck = 0; iblck < nblck; iblck++)
 {
-
-
 	ngr = 0;
 
     pair_distr_1.SetZero();
@@ -699,13 +173,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
             for(int ipop = 0; ipop < param_model.num_walk; ipop++)
 		{
 
-            for(int ic = 0; ic < param_model.num_comp; ic++) // Force::SetZero
-			{
-                for(int ip = 0; ip < param_model.num_part; ip++)
-				{
-                    FMT[ic][ip] = 0.0;
-				}
-			}
+            force.SetZeroForce();
 
             emtnew.SetZero();
 
@@ -723,58 +191,30 @@ for(int iblck = 0; iblck < nblck; iblck++)
             obdm_1.SetZeroAx();
             obdm_2.SetZeroAx();
 
-            for (int i = 0; i < param_model.num_part; i++) faiJ[i] = 0.0; // To make a method
+            for (int i = 0; i < param_model.num_part; i++)
+                faiJ[i] = 0.0; // To make a method
 
             moment_distr_1.SetZeroAx();
             moment_distr_2.SetZeroAx();
 
+            coordinates.GaussianJump(ntemps, in, i_VMC, ipop, force.total);
 
-
-            coordinates.GaussianJump(ntemps, in, i_VMC, ipop, FF);
-
-//            cout << coordinates.xMT[0][0] <<"\n";
-
-//              cout << coordinates.x[0][0][0][0] <<"\n";
-            // Coordinate::GaussJump
-
-/*			for (int ic = 0; ic < ncomp; ic++)
-			{
-				for(int ip = 0; ip < np; ip++)
-				{
-	  				if (ntemps > 1)	Gauss1D(&xgaus, alfa, &kkk);
-	  				else {xgaus = 0.0;}	
-					if (i_VMC == 1) {xMT[ic][ip] = x[ic][ip][ipop][in] + xgaus;}
-					else		
-					 {xMT[ic][ip] = x[ic][ip][ipop][in] + xgaus + FF[ic][ip][ipop][in] * dte;
-					//cout<<setprecision(18);	
-					 //cout<<ic<<" "<<ip<<" "<<xgaus<<" "<<xMT[ic][ip]<<"\n";
-					}
-				}
-            } */
-
-            // ...
-
-            //          WaveFunction(ncomp, np, aB, a, width, xMT, &PsiTotal); // To leave as function
-            WaveFunction(param_model.num_comp, param_model.num_part, param_model.scat_lenght_bos, param_model.scat_lenght, param_model.width, coordinates.xMT, &PsiTotal); // To leave as function
-
-//            WaveFunction(param_model, coordinates, &PsiTotal); // To leave as function
-
-
+            PsiTotal = WaveFunction(param_model, coordinates); // To leave as function
 
 //            Energy_calc(xMT, FMT, emtnew, ncomp, np, aB, a, width); // To leave as function
-            Energy_calc(coordinates.xMT, FMT, emtnew, param_model.num_comp, param_model.num_part, param_model.scat_lenght_bos, param_model.scat_lenght, param_model.width); // To leave as function
+            Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model.num_comp, param_model.num_part, param_model.scat_lenght_bos, param_model.scat_lenght, param_model.width); // To leave as function
 
 //            Energy_calc(coordinates, FMT, emtnew, param_model); // To leave as function
 
 
             // To make as methods
-            PairDistribution_calc(coordinates.xMT, pair_distr_1.draMT, pair_distr_2.draMT, pair_distr_12.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
-            DensityDistribution_calc( coordinates.xMT, dens_distr_1.draMT, dens_distr_2.draMT, dens_distr.num_points, dens_distr.step, param_model.num_comp, param_model.num_part);
+            PairDistribution_calc(coordinates.metrop, pair_distr_1.draMT, pair_distr_2.draMT, pair_distr_12.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+            DensityDistribution_calc( coordinates.metrop, dens_distr_1.draMT, dens_distr_2.draMT, dens_distr.num_points, dens_distr.step, param_model.num_comp, param_model.num_part);
 
 			if(i_Drift == 0)
 			{
             //MetropolisDif(ipop, ncomp, np, PsiTotal, flocal, xMT, x, FF, FMT, &accepta, &nprova, &fvella, ntemps, &kkk, in, dte, i_VMC);
-                MetropolisDif(ipop, param_model.num_comp, param_model.num_part, PsiTotal, flocal, coordinates.xMT, coordinates.x, FF, FMT, &accepta, &nprova, &fvella, ntemps, &param_model.seed, in, param_model.alfa/4.0, i_VMC);
+                MetropolisDif(ipop, param_model.num_comp, param_model.num_part, PsiTotal, flocal, coordinates.metrop, coordinates.total, force.total, force.metrop, &accepta, &nprova, &fvella, ntemps, &param_model.seed, in, param_model.alfa/4.0, i_VMC);
 
             }
 			if(i_Drift == 1)
@@ -795,15 +235,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
 
                 coordinates.Accept();
 
-
-                for(int ic = 0; ic < param_model.num_comp; ic++)
-				{
-                    for(int ip = 0; ip < param_model.num_part; ip++)
-					{
-                        //xaux[ic][ip] = xMT[ic][ip]; // Make Accept method
-                        F[ic][ip] = FMT[ic][ip]; // Make Accept method, F should be replaced to Faux
-					}
-				}
+                force.Accept();
 
                 pair_distr_1.Accept();
                 pair_distr_2.Accept();
@@ -816,7 +248,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
 				{
 					
                 //OBDM1D_11(Lmax,ncomp,np,width, aB, a, kr, xaux,fra,nfra,PsiTotal, dnkupa, numks, dk, &kkk, mgr2, dr2);
-                    OBDM1D_11(Lmax,param_model.num_comp,param_model.num_part,param_model.width, param_model.scat_lenght_bos, param_model.scat_lenght, kr, coordinates.xaux, obdm_1.fra, obdm_1.nfra, PsiTotal, moment_distr_1.dnkupa, mom_distr.num_points, mom_distr.step, &param_model.seed, obdm.num_points, obdm.step);
+                    OBDM1D_11(Lmax,param_model.num_comp,param_model.num_part,param_model.width, param_model.scat_lenght_bos, param_model.scat_lenght, kr, coordinates.auxil, obdm_1.fra, obdm_1.nfra, PsiTotal, moment_distr_1.dnkupa, mom_distr.num_points, mom_distr.step, &param_model.seed, obdm.num_points, obdm.step);
 
                 }
 			//	if(i_OBDM_2 == 1)
@@ -834,15 +266,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
                 enew.tot = eold.tot;
 
                 coordinates.NotAccept(ipop, in);
-
-                for(int ic = 0; ic < param_model.num_comp; ic++)
-				{
-                    for(int ip = 0; ip < param_model.num_part; ip++)
-					{
-                        //xaux[ic][ip] = x[ic][ip][ipop][in];
-						F[ic][ip] = FF[ic][ip][ipop][in];
-					}
-				}
+                force.NotAccept(ipop, in);
 
 
 /*                for(int i = 1; i < (mgr1+1); i++)
@@ -900,17 +324,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
                     flocal[jpop][io] = fnew;
 
                     coordinates.WalkerMatch(jpop, io);
-
-                    for(int ic = 0; ic < param_model.num_comp; ic++)
-					{
-                        for(int ip = 0; ip < param_model.num_part; ip++)
-						{
-                        //	x[ic][ip][jpop][io] = xaux[ic][ip];
-							FF[ic][ip][jpop][io] = F[ic][ip];
-						}
-					}
-
-                    // End of WalkerMatch for Energy, Coordinate and WaveFunction
+                    force.WalkerMatch(jpop, io);
 
                     pair_distr_1.WalkerMatch(jpop, io);
                     pair_distr_2.WalkerMatch(jpop, io);
@@ -947,7 +361,6 @@ for(int iblck = 0; iblck < nblck; iblck++)
             moment_distr_2.WalkerCollect(nsons);
 
             nkuppt = nkuppt + nsons * 100; //Number of McMillan points
-
 
 		}
 	
@@ -1040,9 +453,6 @@ for(int iblck = 0; iblck < nblck; iblck++)
     dens_distr_1.NormalizationNR(ngr, dens_distr.step);
     dens_distr_2.NormalizationNR(ngr, dens_distr.step);
 
-
-
-
     std::fstream outfile22(outDir + "/nr.dat", std::fstream::out| std::ios::app );
     for(int i = 1; i < (dens_distr.num_points+1);i++)
 	{
@@ -1084,8 +494,6 @@ for(int iblck = 0; iblck < nblck; iblck++)
 	}
 	outfile14.close();
 
-
-
 //***************************************************************************
 
     fstream outfile2(startingConfig, fstream::out ); //Coordinate::Print
@@ -1096,7 +504,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
         outfile2<<elocal[i][in].tot<<"\n";
         for(int ic = 0; ic < param_model.num_comp; ic++)
 			{
-                for(int ip = 0; ip < param_model.num_part; ip++ ) {outfile2<<coordinates.x[ic][ip][i][in]<<"\n"; }
+                for(int ip = 0; ip < param_model.num_part; ip++ ) {outfile2<<coordinates.total[ic][ip][i][in]<<"\n"; }
 			}
 	}
 	outfile2.close();
@@ -1158,45 +566,6 @@ for(int iblck = 0; iblck < nblck; iblck++)
     }*/
 }
 
-/*	for(int i = 0; i < ncomp; i++)
-	{
-	  for(int j = 0; j < np; j++)
-		{
-		    	for(int m = 0; m < dmnpop; m++)
-			delete [] x[i][j][m];
-
-			delete[] x[i][j];					
-		}
-	   delete [] x[i];
-	}
-    delete [] x;*/
-
-    for(int i = 0; i < param_model.num_comp; i++)
-	{
-      for(int j = 0; j < param_model.num_part; j++)
-		{
-		    	for(int m = 0; m < dmnpop; m++)
-			delete [] FF[i][j][m];
-
-			delete[] FF[i][j];					
-		}
-	   delete [] FF[i];
-	}
-	delete [] FF;
-
-    /*for(int i = 0; i < ncomp; i++)
-	  delete [] xaux[i];
-	delete [] xaux;	
-	
-	
-	for(int i = 0; i < ncomp; i++)
-	  delete [] xMT[i];
-    delete [] xMT; */
-
-    for(int i = 0; i < param_model.num_comp; i++)
-	  delete [] F[i];
-	delete [] F;
-
 	for(int i = 0; i < dmnpop; i++)
 	  delete [] flocal[i];
 	delete [] flocal;		
@@ -1205,10 +574,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
 	  delete [] elocal[i];
 	delete [] elocal;	
 
-//	delete [] fold;
-
-	delete [] faiJ;	
+    delete [] faiJ;
 
 	delete [] kr;
-
 }

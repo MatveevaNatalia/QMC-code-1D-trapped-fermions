@@ -8,6 +8,75 @@
 #include <cmath>
 using namespace std;
 
+OBDM::OBDM(int num_points){
+    stored_num_points = num_points;
+    fr = new double[num_points+1];
+    fra = new double[num_points+1];
+    nfr = new double[num_points+1];
+    nfra = new double[num_points+1];
+
+    frlocal = new double*[num_points+1];
+    for(int i = 0; i < (num_points+1); i++) frlocal[i] = new double[dmnpop];
+
+    nfrlocal = new double*[num_points+1];
+    for(int i = 0; i < (num_points+1); i++) nfrlocal[i] = new double[dmnpop];
+}
+
+void OBDM::SetZero(){
+    setzero(fr);
+    setzero(nfr);
+}
+
+void OBDM::SetZeroAx(){
+    setzero(fra);
+    setzero(nfra);
+}
+
+void OBDM::NotAccept(int ipop){
+    for(int i = 1; i < (stored_num_points+1); i++)
+    {
+        fra[i] = frlocal[i][ipop];
+        nfra[i] = nfrlocal[i][ipop];
+    }
+}
+
+void OBDM::WalkerMatch(int jpop){
+    for(int i = 1; i < (stored_num_points+1); i++)
+    {
+        frlocal[i][jpop] = fra[i];
+        nfrlocal[i][jpop] = nfra[i];
+    }
+}
+
+void OBDM::WalkerCollect(int nsons){
+    for(int i = 1; i < (stored_num_points+1); i++)
+    {
+
+        fr[i] = fr[i] + nsons * fra[i];
+        nfr[i] = nfr[i] + nsons * nfra[i];
+    }
+}
+
+void OBDM::Normalization(){
+    for (int ir = 1; ir < (stored_num_points+1); ir++)
+        if(nfr[ir] > 0) fr[ir] = fr[ir]/float(nfr[ir]);
+}
+
+OBDM::~OBDM(){
+    delete [] fr;
+    delete [] fra;
+    delete [] nfr;
+    delete [] nfra;
+
+    for(int i = 0; i < (stored_num_points+1); i++)
+        delete [] frlocal[i];
+    delete [] frlocal;
+
+    for(int i = 0; i < (stored_num_points+1); i++)
+        delete [] nfrlocal[i];
+    delete [] nfrlocal;
+}
+
 void OBDM1D_11(double Lmax, int nc, int np, double width, double aB, double a, double *kr, double **xaux, double *fra, double *nfra, double Psi_old, double *dnkupa, int numks, double dk, long *kkk, int mgr, double dr)
 {
 double x1m, x1ax, r1ax;

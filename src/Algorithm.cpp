@@ -5,34 +5,6 @@
 #include <cmath>
 using namespace std;
 
-/*void Initial(double ****x, int npop, int ncomp, int np) // random position from 0 to 1
-{
-	long kkk1 = -13156;
-	for (int ipop = 0; ipop < npop; ipop++ )
-	{
-		for(int ic = 0; ic < ncomp; ic++)
-		{
-			for(int ip = 0; ip < np; ip++) {x[ic][ip][ipop][0] = ran2(&kkk1);}
-		
-		}
-	}
-
-    fstream outfile2("../1D_Qt/Data/inprev.dat", fstream::out );
-	outfile2 << setprecision(17);
-	outfile2<<npop<<"\n";
-	for(int ipop = 0; ipop < npop;ipop++)
-	{
-		outfile2<<ipop<<"\n";
-		for(int ic = 0; ic < ncomp; ic++)
-		{
-			for(int ip = 0; ip < np; ip++)	{outfile2<<x[ic][ip][ipop][0]<<"\n";} 	
-		}
-	}
-	outfile2.close();
-}*/
-
-//************************************************************************************//
-
 void MetropolisDif(int ipop, int ncomp, int np, double PsiTotal, double **flocal, double **xauxT, double ****x, double ****FF, double **FMTnew, int *accepta, int *nprova, double *fvella, int ntemps, long *kkk, int in, double dte, int i_VMC)
 {
 double fdif, QQ, DDF1, DDF2, DDS;
