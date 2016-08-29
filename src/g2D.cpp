@@ -51,3 +51,74 @@ for(int icomp = 1; icomp < ncomp; icomp++) // PairDistribution::CalculateCross
     }
 }
 }
+
+
+void CalculateFirst(double **xMT, double *graMT_11, int mgr, double dr, int ncomp, int np)
+{
+    double Lmax, deltax;
+    int bin_number;
+    Lmax = dr*mgr;
+
+    for(int i = 0; i < np; i++)
+    {
+        for(int j = i+1; j < np; j++)
+        {
+            deltax = fabs(xMT[0][i] - xMT[0][j]);
+
+            if(deltax < Lmax)
+            {
+                bin_number = deltax/dr;
+                graMT_11[bin_number] = graMT_11[bin_number] + 1;
+            }
+
+        }
+    }
+}
+
+void CalculateSecond(double **xMT, double *graMT_22, int mgr, double dr, int ncomp, int np)
+{
+    double Lmax, deltax;
+    int bin_number;
+    Lmax = dr*mgr;
+
+    for(int i = 0; i < np; i++)
+    {
+        for(int j = i+1; j < np; j++)
+        {
+            deltax = fabs(xMT[1][i] - xMT[1][j]);
+
+            if(deltax < Lmax)
+            {
+                bin_number = deltax/dr;
+                graMT_22[bin_number] = graMT_22[bin_number] + 1;
+            }
+
+        }
+    }
+}
+
+
+
+
+
+void CalculateCross(double **xMT, double *graMT_12, int mgr, double dr, int ncomp, int np)
+{
+    double Lmax, x12;
+    int  bin_number;
+    Lmax = dr*mgr;
+    for(int icomp = 1; icomp < ncomp; icomp++)
+    {
+        for(int i = 0; i < np; i++)
+        {
+            for(int j = 0; j < np; j++)
+            {
+                x12 = fabs(xMT[0][i] - xMT[icomp][j]);
+                if(x12 < Lmax)
+                {
+                    bin_number = x12/dr;
+                    graMT_12[bin_number] = graMT_12[bin_number] + 1;
+                }
+            }
+        }
+    }
+}

@@ -46,10 +46,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     ParamModel param_model;
     param_model.seed = kkk;
 
-    int nblck, niter;
+    int nblck, niter, init, icrit;
 
-	int init;
-	int icrit;
 	string str;
 
 	int i_VMC, i_Smart = 0, i_Drift = 0, i_FNDMC, i_OBDM_1, i_OBDM_2=0, i_stat_cor;
@@ -109,14 +107,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
     MomentDistr moment_distr_1(mom_distr.num_points), moment_distr_2(mom_distr.num_points);
 
-	double *faiJ;
-
 	double *kr; 
 	
     int numks_temp = mom_distr.num_points;
     kr = new double[numks_temp];
-
-    faiJ = new double[param_model.num_part];
 
     int ngr;
 
@@ -130,7 +124,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
         coordinates.ReadInitial(startingConfig);
     else
         coordinates.GenerateInitial();
-
 
 	ntemps = 0;
 	
@@ -191,24 +184,28 @@ for(int iblck = 0; iblck < nblck; iblck++)
             obdm_1.SetZeroAx();
             obdm_2.SetZeroAx();
 
-            for (int i = 0; i < param_model.num_part; i++)
-                faiJ[i] = 0.0; // To make a method
-
             moment_distr_1.SetZeroAx();
             moment_distr_2.SetZeroAx();
 
             coordinates.GaussianJump(ntemps, in, i_VMC, ipop, force.total);
 
-            PsiTotal = WaveFunction(param_model, coordinates); // To leave as function
+            PsiTotal = WaveFunction(param_model, coordinates);
 
-//            Energy_calc(xMT, FMT, emtnew, ncomp, np, aB, a, width); // To leave as function
-            Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model.num_comp, param_model.num_part, param_model.scat_lenght_bos, param_model.scat_lenght, param_model.width); // To leave as function
-
-//            Energy_calc(coordinates, FMT, emtnew, param_model); // To leave as function
-
+            Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
 
             // To make as methods
-            PairDistribution_calc(coordinates.metrop, pair_distr_1.draMT, pair_distr_2.draMT, pair_distr_12.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+            //PairDistribution_calc(coordinates.metrop, pair_distr_1.draMT, pair_distr_2.draMT, pair_distr_12.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+
+            CalculateFirst(coordinates.metrop, pair_distr_1.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+
+            CalculateSecond(coordinates.metrop, pair_distr_2.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+
+
+            CalculateCross(coordinates.metrop, pair_distr_12.draMT, pair_distr.num_points, pair_distr.step, param_model.num_comp, param_model.num_part);
+
+            //DistrR::PairDistribution_calc(coordinates.metrop, pair_distr_1.draMT, pair_distr_2.draMT, pair_distr_12.draMT, pair_distr, param_model);
+
+
             DensityDistribution_calc( coordinates.metrop, dens_distr_1.draMT, dens_distr_2.draMT, dens_distr.num_points, dens_distr.step, param_model.num_comp, param_model.num_part);
 
 			if(i_Drift == 0)
@@ -219,7 +216,7 @@ for(int iblck = 0; iblck < nblck; iblck++)
             }
 			if(i_Drift == 1)
 			{
-			accepta = 1;
+                accepta = 1;
 			}
 
 //            cout << "accepta= " << accepta <<"\n";
@@ -574,7 +571,5 @@ for(int iblck = 0; iblck < nblck; iblck++)
 	  delete [] elocal[i];
 	delete [] elocal;	
 
-    delete [] faiJ;
-
-	delete [] kr;
+    delete [] kr;
 }

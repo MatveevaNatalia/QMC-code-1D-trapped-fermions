@@ -115,3 +115,5 @@ for(int alpha = 0; alpha < ncomp; alpha++)
 //cout<<" LogPsiG= "<<PsiG<<" LogPsiJ1= "<<PsiJ1<<" LogPsiJ2= "<<PsiJ2<<"\n";
 
 }
+
+
