@@ -25,8 +25,8 @@ int main (int argc, char *argv[])
     while((tmp=getopt(argc,argv,"i:o:c:"))!=-1)
     {
         if(tmp == 'i') inFile = optarg;
-            else if(tmp == 'c') startingConfig = optarg;
-            else if(tmp == 'o') outDir = optarg;
+        else if(tmp == 'c') startingConfig = optarg;
+        else if(tmp == 'o') outDir = optarg;
     }
 
     if(inFile == "") {
@@ -60,8 +60,8 @@ int main (int argc, char *argv[])
 /*funcion that show the help information*/
 void showhelpinfo(char *s)
 {
-  cout<<"Usage:   "<<s<<" [-option] [argument]"<<endl;
-  cout<<"option:  "<<"-i input file"<<endl;
-  cout<<"         "<<"-o output directory"<<endl;
-  cout<<"         "<<"-c starting configuration"<<endl;
+    cout<<"Usage:   "<<s<<" [-option] [argument]"<<endl;
+    cout<<"option:  "<<"-i input file"<<endl;
+    cout<<"         "<<"-o output directory"<<endl;
+    cout<<"         "<<"-c starting configuration"<<endl;
 }

@@ -36,7 +36,7 @@ public:
 
     void SetZeroForce();
 
-   ~Locals();
+    ~Locals();
 
 };
 
