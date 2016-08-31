@@ -3,6 +3,11 @@
 
 #include <cmath>
 #include "qmc.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cmath>
+
 using namespace std;
 
 
@@ -36,7 +41,12 @@ public:
 
     void PairDistrFirst(double **xMT, const ParamModel& param_model);
     void PairDistrSecond(double **xMT, const ParamModel& param_model);
-    void PairDistrCross(double **xMT, const ParamModel& param_model );
+    void PairDistrCross(double **xMT, const ParamModel& param_model);
+
+    void DensityFirst(double **xMT, const ParamModel& param_model);
+    void DensitySecond(double **xMT, const ParamModel& param_model);
+
+    void PrintDistr(const string& name_file);
 
     ~DistributionR();
 };

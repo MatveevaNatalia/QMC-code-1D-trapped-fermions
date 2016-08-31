@@ -53,3 +53,23 @@ void DensityDistribution_calc(double **xMT, double *nraMT_11, double *nraMT_22, 
     }
     //}
 }
+
+
+/*void DensitySecond(double **xMT, double *nraMT, int mgr, double dr, int np)
+{
+    double Lmax, deltax;
+    int bin_num;
+    Lmax = dr*mgr;
+
+    for(int i = 0; i < np; i++)
+    {
+        deltax = fabs(xMT[0][i]);
+
+        if(deltax < Lmax)
+        {
+            bin_num = deltax/dr;
+            nraMT[bin_num] += 1;
+        }
+    }
+}*/
+

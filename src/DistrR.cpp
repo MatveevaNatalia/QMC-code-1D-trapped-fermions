@@ -1,5 +1,8 @@
 #include "DistrR.h"
 
+
+using namespace std;
+
 DistributionR::DistributionR(const CorFunParam& pair_distr){
     num_points = pair_distr.num_points;
     step = pair_distr.step;
@@ -135,6 +138,55 @@ void DistributionR::PairDistrCross(double **xMT, const ParamModel& param_model)
         }
     }
 }
+
+
+void DistributionR::DensityFirst(double **xMT, const ParamModel& param_model)
+{
+    double Lmax;
+    int bin_num;
+    Lmax = step*num_points;
+
+    for(int i = 0; i < param_model.num_part; i++)
+    {
+        if(fabs(xMT[0][i]) < Lmax)
+        {
+            bin_num = fabs(xMT[0][i])/step;
+            draMT[bin_num] += 1;
+        }
+    }
+}
+
+void DistributionR::DensitySecond(double **xMT, const ParamModel& param_model)
+{
+    double Lmax;
+    int bin_num;
+    Lmax = step*num_points;
+
+    for(int i = 0; i < param_model.num_part; i++)
+    {
+        if(fabs(xMT[1][i]) < Lmax)
+        {
+            bin_num = fabs(xMT[1][i])/step;
+            draMT[bin_num] += 1;
+        }
+    }
+}
+
+void DistributionR::PrintDistr(const string& name_file)
+{
+    double coord_bin;
+    fstream outfile(name_file, fstream::out| ios::app );
+    for(int i = 1; i < (num_points+1);i++)
+    {
+        coord_bin = float(i) * step + step/2.0;
+        outfile<<coord_bin<<" "<<dr[i]<<"\n";
+        // cout<<r1<<" "<<gr_11[i]<<" "<<gr_12[i]<<"\n"; Impossible to do in the method?
+    }
+    outfile.close();
+}
+
+
+
 
 DistributionR::~DistributionR(){
     delete[] dra;

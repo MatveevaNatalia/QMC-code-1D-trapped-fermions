@@ -1,5 +1,8 @@
 #include "Locals.h"
 
+
+using namespace std;
+
 Locals::Locals(ParamModel param_model){
 
     num_comp_saved = param_model.num_comp;
@@ -146,6 +149,26 @@ void Locals::SetZeroForce(){
     }
 
 }
+
+/*void Locals::PrintConfig(const string& name_file, double** elocal_tot, int in)
+{
+    fstream outfile(name_file, fstream::out ); //Coordinate::Print
+    outfile<<num_walk_saved<<"\n";
+    outfile<<setprecision(18);
+    for(int i = 0; i < num_walk_saved;i++)
+    {
+        outfile<<elocal_tot[i][in]<<"\n";
+        for(int ic = 0; ic < num_comp_saved; ic++)
+        {
+            for(int ip = 0; ip < num_part_saved; ip++ )
+                outfile<<total[ic][ip][i][in]<<"\n";
+        }
+    }
+    outfile.close();
+}*/
+
+
+
 
 
 Locals::~Locals(){

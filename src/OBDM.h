@@ -4,18 +4,23 @@
 #include "qmc.h"
 
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cmath>
 
 using namespace std;
 
 class OBDM{
 private:
-    int stored_num_points;
+    int num_points;
+    int step;
     void setzero(double * x){
-        for(int i = 0; i < stored_num_points+1; i++) x[i] = 0;
+        for(int i = 0; i < num_points+1; i++) x[i] = 0;
     }
 public:
     double *fr, *fra, *nfr, *nfra, **frlocal, **nfrlocal;
-    OBDM(int num_points);
+    OBDM(const CorFunParam& obdm);
 
     void SetZero();
 
@@ -28,6 +33,8 @@ public:
     void WalkerCollect(int nsons);
 
     void Normalization();
+
+    void PrintDistr(const string& name_file);
 
     ~OBDM();
 };

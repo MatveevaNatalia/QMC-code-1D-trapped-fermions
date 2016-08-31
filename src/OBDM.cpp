@@ -2,14 +2,12 @@
 #include "OBDM.h"
 #include "Wave_fun.h"
 #include "Algorithm.h"
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <cmath>
+
 using namespace std;
 
-OBDM::OBDM(int num_points){
-    stored_num_points = num_points;
+OBDM::OBDM(const CorFunParam& obdm){
+    num_points = obdm.num_points;
+    step = obdm.step;
     fr = new double[num_points+1];
     fra = new double[num_points+1];
     nfr = new double[num_points+1];
@@ -33,7 +31,7 @@ void OBDM::SetZeroAx(){
 }
 
 void OBDM::NotAccept(int ipop){
-    for(int i = 1; i < (stored_num_points+1); i++)
+    for(int i = 1; i < (num_points+1); i++)
     {
         fra[i] = frlocal[i][ipop];
         nfra[i] = nfrlocal[i][ipop];
@@ -41,7 +39,7 @@ void OBDM::NotAccept(int ipop){
 }
 
 void OBDM::WalkerMatch(int jpop){
-    for(int i = 1; i < (stored_num_points+1); i++)
+    for(int i = 1; i < (num_points+1); i++)
     {
         frlocal[i][jpop] = fra[i];
         nfrlocal[i][jpop] = nfra[i];
@@ -49,7 +47,7 @@ void OBDM::WalkerMatch(int jpop){
 }
 
 void OBDM::WalkerCollect(int nsons){
-    for(int i = 1; i < (stored_num_points+1); i++)
+    for(int i = 1; i < (num_points+1); i++)
     {
 
         fr[i] = fr[i] + nsons * fra[i];
@@ -58,9 +56,23 @@ void OBDM::WalkerCollect(int nsons){
 }
 
 void OBDM::Normalization(){
-    for (int ir = 1; ir < (stored_num_points+1); ir++)
+    for (int ir = 1; ir < (num_points+1); ir++)
         if(nfr[ir] > 0) fr[ir] = fr[ir]/float(nfr[ir]);
 }
+
+void OBDM::PrintDistr(const string& name_file)
+{
+    double coord_bin;
+    fstream outfile(name_file, fstream::out| ios::app );
+    for(int i = 1; i < (num_points+1);i++)
+    {
+        coord_bin = float(i) * step + step/2.0;
+        outfile<<coord_bin<<" "<<fr[i]<<"\n";
+        // cout<<r1<<" "<<gr_11[i]<<" "<<gr_12[i]<<"\n"; Impossible to do in the method?
+    }
+    outfile.close();
+}
+
 
 OBDM::~OBDM(){
     delete [] fr;
@@ -68,11 +80,11 @@ OBDM::~OBDM(){
     delete [] nfr;
     delete [] nfra;
 
-    for(int i = 0; i < (stored_num_points+1); i++)
+    for(int i = 0; i < (num_points+1); i++)
         delete [] frlocal[i];
     delete [] frlocal;
 
-    for(int i = 0; i < (stored_num_points+1); i++)
+    for(int i = 0; i < (num_points+1); i++)
         delete [] nfrlocal[i];
     delete [] nfrlocal;
 }

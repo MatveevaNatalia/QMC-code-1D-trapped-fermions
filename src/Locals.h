@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 
+
 using namespace std;
 
 class Locals{
@@ -35,6 +36,9 @@ public:
     void SetZeroForceTotal(int in);
 
     void SetZeroForce();
+
+//    void PrintConfig(const string& name_file, double** elocal_tot, int in);
+
 
     ~Locals();
 
