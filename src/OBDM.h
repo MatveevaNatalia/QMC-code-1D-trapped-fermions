@@ -14,7 +14,7 @@ using namespace std;
 class OBDM{
 private:
     int num_points;
-    int step;
+    double step;
     void setzero(double * x){
         for(int i = 0; i < num_points+1; i++) x[i] = 0;
     }

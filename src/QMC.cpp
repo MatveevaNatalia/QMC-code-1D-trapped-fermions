@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include "Locals.h"
-#include "metrop.h"
+//#include "metrop.h"
 #include "Algorithm.h"
 #include "Energy.h"
 #include "g2D.h"
@@ -70,6 +70,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
     Locals force(param_model);
 
     pair_distr.step = pair_distr.max_value/pair_distr.num_points;
+
     obdm.step = obdm.max_value/obdm.num_points;
     dens_distr.step = dens_distr.max_value/dens_distr.num_points;
 
@@ -94,6 +95,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     outfile2.close();
     Energy **elocal;
     double **flocal;
+
+
 
     DistributionR pair_distr_1(pair_distr);
     DistributionR pair_distr_2(pair_distr);
@@ -198,6 +201,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 pair_distr_2.PairDistrSecond(coordinates.metrop, param_model);
                 pair_distr_12.PairDistrCross(coordinates.metrop, param_model);
 
+              //  cout <<ntemps <<" "<< pair_distr_1.draMT[5] <<endl;
+
                 dens_distr_1.DensityFirst( coordinates.metrop, param_model);
                 dens_distr_2.DensitySecond( coordinates.metrop, param_model);
 
@@ -232,6 +237,9 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     pair_distr_1.Accept();
                     pair_distr_2.Accept();
                     pair_distr_12.Accept();
+
+                   // cout <<ntemps <<" "<<pair_distr_1.dra[5] << endl;
+
 
                     dens_distr_1.Accept();
                     dens_distr_2.Accept();
@@ -343,6 +351,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 pair_distr_2.WalkerCollect(nsons);
                 pair_distr_12.WalkerCollect(nsons);
 
+
+
                 dens_distr_1.WalkerCollect(nsons);
                 pair_distr_2.WalkerCollect(nsons);
 
@@ -415,12 +425,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         //********************************************************************************************
 
+         double r1;
+
         pair_distr_1.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
         pair_distr_2.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
         pair_distr_12.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
-
-        double r1;
-
 
         // It should be CorFun::Print
 
@@ -428,49 +437,13 @@ void run (const string & inFile, const string & startingConfig, const string & o
         pair_distr_12.PrintDistr(outDir + "/gr_12.dat");
 
 
-/*        std::fstream outfile9(outDir + "/gr.dat", std::fstream::out| std::ios::app );
-        for(int i = 1; i < (pair_distr.num_points+1);i++)
-        {
-            r1 = float(i) * pair_distr.step + pair_distr.step/2.0; //(float(i)+1) is in order to coincide with fortran code
-            outfile9<<r1<<" "<<pair_distr_1.dr[i]<<"\n";
-            // cout<<r1<<" "<<gr_11[i]<<" "<<gr_12[i]<<"\n";
-        }
-        outfile9.close();
-
-        std::fstream outfile19(outDir + "/gr_12.dat", std::fstream::out| std::ios::app );
-        for(int i = 1; i < (pair_distr.num_points+1);i++)
-        {
-            r1 = float(i) * pair_distr.step + pair_distr.step/2.0; //(float(i)+1) is in order to coincide with fortran code
-            outfile19<<r1<<" "<<pair_distr_12.dr[i]<<"\n";
-            // cout<<r1<<" "<<gr_11[i]<<" "<<gr_12[i]<<"\n";
-        }
-        outfile19.close();*/
-
         dens_distr_1.NormalizationNR(ngr, dens_distr.step);
         dens_distr_2.NormalizationNR(ngr, dens_distr.step);
-
-/*        std::fstream outfile22(outDir + "/nr.dat", std::fstream::out| std::ios::app );
-        for(int i = 1; i < (dens_distr.num_points+1);i++)
-        {
-            r1 = float(i) * dens_distr.step + dens_distr.step/2.0; //(float(i)+1) is in order to coincide with fortran code
-            //	        outfile22<<r1<<" "<<nr_11[i]<<" "<<nr_22[i]<<"\n";
-            outfile22<<r1<<" "<<dens_distr_1.dr[i]<<"\n";
-        }
-        outfile22.close();*/
 
         dens_distr_1.PrintDistr(outDir + "/nr.dat");
 
         obdm_1.Normalization();
         obdm_2.Normalization();
-
-/*        fstream outfile13(outDir + "/fr.dat", fstream::out| ios::app );
-        for(int i = 1; i < (obdm.num_points+1);i++)
-        {
-            r1 = float(i) * obdm.step + obdm.step/2.0;
-            //		outfile13<<r1<<" "<<fr[i]<<" "<<fr_22[i]<<"\n";
-            outfile13<<r1<<" "<<obdm_1.fr[i]<<"\n";
-        }
-        outfile13.close();*/
 
         obdm_1.PrintDistr(outDir + "/fr.dat");
 
@@ -482,17 +455,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         moment_distr_1.Normalization(param_model.num_part, nkuppt);
         moment_distr_2.Normalization(param_model.num_part, nkuppt);
-
-        /*fstream outfile14(outDir + "/nk.dat", fstream::out| ios::app );
-        for(int ik = 0; ik < mom_distr.num_points;ik++)
-        {
-
-            k1 = float(ik) * mom_distr.step;
-            outfile14<<k1<<" "<<moment_distr_1.dnkup[ik]<<"\n";
-            //cout<<k1<<" "<<dnkup[ik]<<"\n";
-
-        }
-        outfile14.close();*/
 
         moment_distr_1.PrintDistr(outDir + "/nk.dat");
 
@@ -511,11 +473,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
             }
         }
         outfile2.close();
-
-
-
-
-
 
         accrate = 100.0 * float(nacc)/float(nprova);
         fstream outfile1(outDir + "/Accept.dat", fstream::out| ios::app );

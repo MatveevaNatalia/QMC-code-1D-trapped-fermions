@@ -13,7 +13,8 @@ using namespace std;
 
 class MomentDistr{
 private:
-    int num_points, step;
+    int num_points;
+    double step;
     void setzero(double * x){
         for(int i = 0; i < num_points; i++) x[i] = 0;
     }

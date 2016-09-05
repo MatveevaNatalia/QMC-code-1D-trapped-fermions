@@ -12,7 +12,10 @@ SOURCES += \
     src/QMC.cpp \
     src/Statistics.cpp \
     src/Wave_fun.cpp \
-    src/main.cpp
+    src/main.cpp \
+    src/MomDistr.cpp \
+    src/DistrR.cpp \
+    src/Locals.cpp
 
 HEADERS += \
     src/Algorithm.h \
@@ -22,4 +25,7 @@ HEADERS += \
     src/OBDM.h \
     src/Statistics.h \
     src/Wave_fun.h \
-    src/qmc.h
+    src/qmc.h \
+    src/MomDistr.h \
+    src/DistrR.h \
+    src/Locals.h

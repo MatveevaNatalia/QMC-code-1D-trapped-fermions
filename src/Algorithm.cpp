@@ -6,7 +6,7 @@ using namespace std;
 void MetropolisDif(int ipop, int ncomp, int np, double PsiTotal, double **flocal, double **xauxT, double ****x, double ****FF, double **FMTnew, int *accepta, int *nprova, double *fvella, int ntemps, long *kkk, int in, double dte, int i_VMC)
 {
     double fdif, QQ, DDF1, DDF2, DDS;
-  //  cout << "kkk= " << *kkk << '\n';
+    //cout << "kkk= " << *kkk << '\n';
     if(ntemps == 1) {*fvella = 0.0; QQ = 0.0;}
     else
     {
