@@ -2,7 +2,7 @@
 #define LOCALS_H
 
 #include "qmc.h"
-#include "Algorithm.h"
+
 
 #include <iostream>
 #include <fstream>

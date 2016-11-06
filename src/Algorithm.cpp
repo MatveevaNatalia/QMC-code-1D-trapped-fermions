@@ -1,55 +1,10 @@
 #include "Algorithm.h"
 
-
 using namespace std;
 
-void MetropolisDif(int ipop, int ncomp, int np, double PsiTotal, double **flocal, double **xauxT, double ****x, double ****FF, double **FMTnew, int *accepta, int *nprova, double *fvella, int ntemps, long *kkk, int in, double dte, int i_VMC)
+void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **flocal, Locals& coordinates, Locals& force, int& accepta, int& nprova, double& fvella, int ntemps, int in, int i_VMC)
 {
-    double fdif, QQ, DDF1, DDF2, DDS;
-    //cout << "kkk= " << *kkk << '\n';
-    if(ntemps == 1) {*fvella = 0.0; QQ = 0.0;}
-    else
-    {
-        *fvella = flocal[ipop][in];
-        QQ = 0.0;
-        for(int inc = 0; inc < ncomp; inc++)
-        {
-            for(int ip = 0; ip < np; ip ++)
-            {
-                DDF1 = FF[inc][ip][ipop][in] + FMTnew[inc][ip];
-                DDF2 = FF[inc][ip][ipop][in] - FMTnew[inc][ip];
-                DDS = xauxT[inc][ip] - x[inc][ip][ipop][in];
-                //           cout << "xauxT= "<< xauxT[inc][ip] << " x= " <<x[inc][ip][ipop][in] <<"\n";
-                QQ = QQ + 0.5*DDF1*(0.5*dte*DDF2-DDS);
-            }
-        }
-    }
-    if(i_VMC == 1) {fdif = 2.0 * (PsiTotal - *fvella);} //For_VMC_calculations
-    if(i_VMC == 0) {fdif = 2.0 * (PsiTotal - *fvella) + QQ;} //SVMC and DMC, QQ because of drift jump
-    *accepta = 1;
-    if(ntemps > 1)
-    {
-        *nprova = *nprova + 1;
-        if (fdif >= 0)	*accepta = 1;
-        else
-        {
-            *accepta = 0;
-            if(ran2(kkk)< exp(fdif))
-            {
-                *accepta = 1;
-                //cout << "kkk= " << kkk <<" "<<ran2(kkk) << "\n";
-            }
-        }
-    }
-}
-
-//void MetropolisDif(int ipop, int ncomp, int np, double PsiTotal, double **flocal, double **xauxT, double ****x, double ****FF, double **FMTnew, int *accepta, int *nprova, double *fvella, int ntemps, long *kkk, int in, double dte, int i_VMC)
-
-/*void MetropolisDif(int ipop, ParamModel param_model, double PsiTotal, double **flocal, Locals& coordinates, Locals& force, int& accepta, int& nprova, double& fvella, int ntemps, int in, int i_VMC)
-{
-    double fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;
-    //long seed;
-    //seed = param_model.seed;
+    double fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;    
     if(ntemps == 1)
     {
         fvella = 0.0;
@@ -85,19 +40,11 @@ void MetropolisDif(int ipop, int ncomp, int np, double PsiTotal, double **flocal
         else
         {
             accepta = 0;
-            if(ran2(&param_model.seed)< exp(fdif))
+            if(ran2(&(param_model.seed))< exp(fdif))
                 accepta = 1;
         }
     }
-}*/
-
-
-
-
-
-
-
-
+}
 
 
 //****************************************************************************//
@@ -154,8 +101,7 @@ void Gauss1D(double * x, double alfa, long *kkk)
     zzz = ran2(kkk);
     while( zzz == 0.0) zzz = ran2(kkk);
     r = sqrt(-alfa * log(zzz));
-    *x = r * cos(fi);
-    //	*y = r * sin(fi);
+    *x = r * cos(fi);   
 }
 
 //**********************************************//

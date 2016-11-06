@@ -201,18 +201,13 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 pair_distr_2.PairDistrSecond(coordinates.metrop, param_model);
                 pair_distr_12.PairDistrCross(coordinates.metrop, param_model);
 
-              //  cout <<ntemps <<" "<< pair_distr_1.draMT[5] <<endl;
-
                 dens_distr_1.DensityFirst( coordinates.metrop, param_model);
                 dens_distr_2.DensitySecond( coordinates.metrop, param_model);
 
 
                 if(i_Drift == 0)
                 {
-                    //MetropolisDif(ipop, ncomp, np, PsiTotal, flocal, xMT, x, FF, FMT, &accepta, &nprova, &fvella, ntemps, &kkk, in, dte, i_VMC);
-                    MetropolisDif(ipop, param_model.num_comp, param_model.num_part, PsiTotal, flocal, coordinates.metrop, coordinates.total, force.total, force.metrop, &accepta, &nprova, &fvella, ntemps, &param_model.seed, in, param_model.alfa/4.0, i_VMC);
-                    //cout << "param_model.seed= " << param_model.seed <<"\n";
-                    //MetropolisDif(ipop, param_model, PsiTotal, flocal, coordinates, force, accepta, nprova, fvella, ntemps, in, i_VMC);
+                     MetropolisDif(ipop, param_model, PsiTotal, flocal, coordinates, force, accepta, nprova, fvella, ntemps, in, i_VMC);
                 }
                 if(i_Drift == 1)
                 {
