@@ -22,6 +22,40 @@
 #include "Statistics.h"
 #include "Wave_fun.h"
 #include "qmc.h"
+//
+//                               .-----.
+//                              /7  .  (
+//                             /   .-.  \
+//                            /   /   \  \
+//                           / `  )   (   )
+//                          / `   )   ).  \
+//                        .'  _.   \_/  . |
+//       .--.           .' _.' )`.        |
+//      (    `---...._.'   `---.'_)    ..  \
+//       \            `----....___    `. \  |
+//        `.           _ ----- _   `._  )/  |
+//          `.       /"  \   /"  \`.  `._   |
+//            `.    ((O)` ) ((O)` ) `.   `._\
+//              `-- '`---'   `---' )  `.    `-.
+//                 /                  ` \      `-.
+//               .'                      `.       `.
+//              /                     `  ` `.       `-.
+//       .--.   \ ===._____.======. `    `   `. .___.--`     .''''.
+//      ' .` `-. `.                )`. `   ` ` \          .' . '  8)
+//     (8  .  ` `-.`.               ( .  ` `  .`\      .'  '    ' /
+//      \  `. `    `-.               ) ` .   ` ` \  .'   ' .  '  /
+//       \ ` `.  ` . \`.    .--.     |  ` ) `   .``/   '  // .  /
+//        `.  ``. .   \ \   .-- `.  (  ` /_   ` . / ' .  '/   .'
+//          `. ` \  `  \ \  '-.   `-'  .'  `-.  `   .  .'/  .'
+//            \ `.`.  ` \ \    ) /`._.`       `.  ` .  .'  /
+//             |  `.`. . \ \  (.'               `.   .'  .'
+//          __/  .. \ \ ` ) \                     \.' .. \__
+//   .-._.-'     '"  ) .-'   `.                   (  '"     `-._.--.
+//  (_________.-====' / .' /\_)`--..__________..-- `====-. _________)
+//                   (.'(.'
+//
+
+
 
 using namespace std;
 
@@ -38,7 +72,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
     double accrate;
 
-    CorFunParam pair_distr, obdm, dens_distr, mom_distr;
+    CorFunParam pair_distr_param, obdm_param, dens_distr_param, mom_distr_param;
 
     double Lmax;
 
@@ -59,22 +93,22 @@ void run (const string & inFile, const string & startingConfig, const string & o
     filestr2>>str>>param_model.scat_lenght_bos>>str>>param_model.scat_lenght;
     filestr2>>str>>param_model.alfa>>str>>niter>>str>>nblck>>str;
     filestr2>>param_model.num_walk>>str>>init>>str>>nwrite>>str>>icrit;
-    filestr2>>str>>i_OBDM_1>>str>>pair_distr.num_points>>str>>obdm.num_points;
-    filestr2>>str>>dens_distr.num_points>>str>>pair_distr.max_value;
-    filestr2>>str>>obdm.max_value>>str>>dens_distr.max_value;
-    filestr2>>str>>mom_distr.num_points>>str>>mom_distr.max_value>>str>>Lmax;
+    filestr2>>str>>i_OBDM_1>>str>>pair_distr_param.num_points>>str>>obdm_param.num_points;
+    filestr2>>str>>dens_distr_param.num_points>>str>>pair_distr_param.max_value;
+    filestr2>>str>>obdm_param.max_value>>str>>dens_distr_param.max_value;
+    filestr2>>str>>mom_distr_param.num_points>>str>>mom_distr_param.max_value>>str>>Lmax;
     filestr2.close();
 
 
     Locals coordinates(param_model);
     Locals force(param_model);
 
-    pair_distr.step = pair_distr.max_value/pair_distr.num_points;
+    pair_distr_param.step = pair_distr_param.max_value/pair_distr_param.num_points;
 
-    obdm.step = obdm.max_value/obdm.num_points;
-    dens_distr.step = dens_distr.max_value/dens_distr.num_points;
+    obdm_param.step = obdm_param.max_value/obdm_param.num_points;
+    dens_distr_param.step = dens_distr_param.max_value/dens_distr_param.num_points;
 
-    mom_distr.step = mom_distr.max_value/mom_distr.num_points;
+    mom_distr_param.step = mom_distr_param.max_value/mom_distr_param.num_points;
 
     fstream outfile2(outDir+"/Output.dat", fstream::out| ios::app );
     outfile2<<setprecision(18);
@@ -85,11 +119,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
     outfile2<<nblck<<" npop= "<<param_model.num_walk;
     outfile2<<" init= "<<init<<" nwrite= "<<nwrite<<" icrit= "<<icrit<<"\n";
     outfile2<<" i_OBDM= "<<i_OBDM_1<<"\n";
-    outfile2<<" mgr_g(r)= "<<pair_distr.num_points<<" mgr_OBDM= "<<obdm.num_points;
-    outfile2<<" mgr_dens= "<<dens_distr.num_points<<"\n";
-    outfile2<<" Lmax_g(r)= "<<pair_distr.max_value<<" Lmax_OBDM= "<<obdm.max_value;
-    outfile2<<" Lmax_dens= "<<dens_distr.max_value<<"\n";
-    outfile2<<" numks= "<<mom_distr.num_points<<" kmax= "<<mom_distr.max_value;
+    outfile2<<" mgr_g(r)= "<<pair_distr_param.num_points<<" mgr_OBDM= "<<obdm_param.num_points;
+    outfile2<<" mgr_dens= "<<dens_distr_param.num_points<<"\n";
+    outfile2<<" Lmax_g(r)= "<<pair_distr_param.max_value<<" Lmax_OBDM= "<<obdm_param.max_value;
+    outfile2<<" Lmax_dens= "<<dens_distr_param.max_value<<"\n";
+    outfile2<<" numks= "<<mom_distr_param.num_points<<" kmax= "<<mom_distr_param.max_value;
     outfile2<<" Lmax_McM= "<<Lmax<<"\n";
 
     outfile2.close();
@@ -98,22 +132,18 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
 
 
-    DistributionR pair_distr_1(pair_distr);
-    DistributionR pair_distr_2(pair_distr);
-    DistributionR pair_distr_12(pair_distr);
-
-    DistributionR dens_distr_1(dens_distr);
-    DistributionR dens_distr_2(dens_distr);
-
-    OBDM obdm_1(obdm), obdm_2(obdm);
+    DistributionR pair_distr(pair_distr_param);
+    DistributionR pair_distr_cross(pair_distr_param);
+    DistributionR dens_distr(dens_distr_param);
+    OBDM obdm(obdm_param);
 
     double nkuppt;
 
-    MomentDistr moment_distr_1(mom_distr), moment_distr_2(mom_distr);
+    MomentDistr moment_distr(mom_distr_param);
 
     double *kr;
 
-    int numks_temp = mom_distr.num_points;
+    int numks_temp = mom_distr_param.num_points;
     kr = new double[numks_temp];
 
     int ngr;
@@ -143,18 +173,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
     {
         ngr = 0;
 
-        pair_distr_1.SetZero();
-        pair_distr_2.SetZero();
-        pair_distr_12.SetZero();
-
-        obdm_1.SetZero();
-        obdm_2.SetZero();
-
-        dens_distr_1.SetZero();
-        dens_distr_2.SetZero();
-
-        moment_distr_1.SetZero();
-        moment_distr_2.SetZero();
+        pair_distr.SetZero();
+        pair_distr_cross.SetZero();
+        obdm.SetZero();
+        dens_distr.SetZero();
+        moment_distr.SetZero();
 
         nkuppt = 0;
 
@@ -178,18 +201,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 eold.kin = elocal[ipop][in].kin;
                 eold.pot = elocal[ipop][in].pot;
 
-                pair_distr_1.SetZeroAx();
-                pair_distr_2.SetZeroAx();
-                pair_distr_12.SetZeroAx();
-
-                dens_distr_1.SetZeroAx();
-                dens_distr_2.SetZeroAx();
-
-                obdm_1.SetZeroAx();
-                obdm_2.SetZeroAx();
-
-                moment_distr_1.SetZeroAx();
-                moment_distr_2.SetZeroAx();
+                pair_distr.SetZeroAx();
+                pair_distr_cross.SetZeroAx();
+                dens_distr.SetZeroAx();
+                obdm.SetZeroAx();
+                moment_distr.SetZeroAx();
 
                 coordinates.GaussianJump(ntemps, in, i_VMC, ipop, force.total);
 
@@ -197,12 +213,9 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                 Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
 
-                pair_distr_1.PairDistrFirst(coordinates.metrop, param_model);
-                pair_distr_2.PairDistrSecond(coordinates.metrop, param_model);
-                pair_distr_12.PairDistrCross(coordinates.metrop, param_model);
-
-                dens_distr_1.DensityFirst( coordinates.metrop, param_model);
-                dens_distr_2.DensitySecond( coordinates.metrop, param_model);
+                pair_distr.PairDistrFirst(coordinates.metrop, param_model);
+                pair_distr_cross.PairDistrCross(coordinates.metrop, param_model);
+                dens_distr.DensityFirst( coordinates.metrop, param_model);
 
 
                 if(i_Drift == 0)
@@ -229,27 +242,20 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                     force.Accept();
 
-                    pair_distr_1.Accept();
-                    pair_distr_2.Accept();
-                    pair_distr_12.Accept();
+                    pair_distr.Accept();
+                    pair_distr_cross.Accept();
 
                    // cout <<ntemps <<" "<<pair_distr_1.dra[5] << endl;
 
-
-                    dens_distr_1.Accept();
-                    dens_distr_2.Accept();
+                    dens_distr.Accept();
 
                     if(i_OBDM_1 == 1)
                     {
 
                         //OBDM1D_11(Lmax,ncomp,np,width, aB, a, kr, xaux,fra,nfra,PsiTotal, dnkupa, numks, dk, &kkk, mgr2, dr2);
-                        OBDM1D_11(Lmax,param_model.num_comp,param_model.num_part,param_model.width, param_model.scat_lenght_bos, param_model.scat_lenght, kr, coordinates.auxil, obdm_1.fra, obdm_1.nfra, PsiTotal, moment_distr_1.dnkupa, mom_distr.num_points, mom_distr.step, &param_model.seed, obdm.num_points, obdm.step);
+                        OBDM1D_11(Lmax,param_model.num_comp,param_model.num_part,param_model.width, param_model.scat_lenght_bos, param_model.scat_lenght, kr, coordinates.auxil, obdm.fra, obdm.nfra, PsiTotal, moment_distr.dnkupa, mom_distr_param.num_points, mom_distr_param.step, &param_model.seed, obdm_param.num_points, obdm_param.step);
 
                     }
-                    //	if(i_OBDM_2 == 1)
-                    //	{
-                    //	OBDM1D_22(Lmax,ncomp,np,width, aB, a, kr, xaux,fra_22,nfra_22,PsiTotal, dnkupa_22, numks, dk, &kkk, mgr2, dr2);
-                    //	}
 
                 }
                 else
@@ -263,29 +269,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     coordinates.NotAccept(ipop, in);
                     force.NotAccept(ipop, in);
 
-
-                    /*                for(int i = 1; i < (mgr1+1); i++)
-                {
-                    gra_11[i] = grlocal_11[i][ipop][in];
-                    gra_22[i] = grlocal_22[i][ipop][in];
-                    gra_12[i] = grlocal_12[i][ipop][in];
-                }*/
-
-                    // 3 loops instead of one?
-
-                    pair_distr_1.NotAccept(ipop, in);
-                    pair_distr_2.NotAccept(ipop, in);
-                    pair_distr_12.NotAccept(ipop, in);
-
-
-                    dens_distr_1.NotAccept(ipop, in);
-                    dens_distr_2.NotAccept(ipop, in);
-
-                    obdm_1.NotAccept(ipop);
-                    obdm_2.NotAccept(ipop);
-
-                    moment_distr_1.NotAccept(ipop);
-                    moment_distr_2.NotAccept(ipop);
+                    pair_distr.NotAccept(ipop, in);
+                    pair_distr_cross.NotAccept(ipop, in);
+                    dens_distr.NotAccept(ipop, in);
+                    obdm.NotAccept(ipop);
+                    moment_distr.NotAccept(ipop);
 
                 }
 
@@ -295,9 +283,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 }
 
                 else {nsons = 1;}
-                //			cout<<nsons;
-
-                //			nsons = 1;
 
                 if(nsons > 0)
                 {
@@ -315,24 +300,16 @@ void run (const string & inFile, const string & startingConfig, const string & o
                         elocal[jpop][io].kin = enew.kin;
                         elocal[jpop][io].pot = enew.pot;
 
-
                         flocal[jpop][io] = fnew;
 
                         coordinates.WalkerMatch(jpop, io);
                         force.WalkerMatch(jpop, io);
 
-                        pair_distr_1.WalkerMatch(jpop, io);
-                        pair_distr_2.WalkerMatch(jpop, io);
-                        pair_distr_12.WalkerMatch(jpop, io);
-
-                        dens_distr_1.WalkerMatch(jpop, io);
-                        dens_distr_2.WalkerMatch(jpop, io);
-
-                        obdm_1.WalkerMatch(jpop);
-                        obdm_2.WalkerMatch(jpop);
-
-                        moment_distr_1.WalkerMatch(jpop);
-                        moment_distr_2.WalkerMatch(jpop);
+                        pair_distr.WalkerMatch(jpop, io);
+                        pair_distr_cross.WalkerMatch(jpop, io);
+                        dens_distr.WalkerMatch(jpop, io);
+                        obdm.WalkerMatch(jpop);
+                        moment_distr.WalkerMatch(jpop);
 
                         jpop = jpop + 1;
                     }
@@ -342,20 +319,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                 ngr = ngr + nsons;
 
-                pair_distr_1.WalkerCollect(nsons);
-                pair_distr_2.WalkerCollect(nsons);
-                pair_distr_12.WalkerCollect(nsons);
-
-
-
-                dens_distr_1.WalkerCollect(nsons);
-                pair_distr_2.WalkerCollect(nsons);
-
-                obdm_1.WalkerCollect(nsons);
-                obdm_2.WalkerCollect(nsons);
-
-                moment_distr_1.WalkerCollect(nsons);
-                moment_distr_2.WalkerCollect(nsons);
+                pair_distr.WalkerCollect(nsons);
+                pair_distr_cross.WalkerCollect(nsons);
+                dens_distr.WalkerCollect(nsons);
+                obdm.WalkerCollect(nsons);
+                moment_distr.WalkerCollect(nsons);
 
                 nkuppt = nkuppt + nsons * 100; //Number of McMillan points
 
@@ -420,27 +388,21 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         //********************************************************************************************
 
-         double r1;
+        double r1;
 
-        pair_distr_1.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
-        pair_distr_2.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
-        pair_distr_12.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr.step);
+        pair_distr.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
+        pair_distr_cross.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
 
         // It should be CorFun::Print
 
-        pair_distr_1.PrintDistr( outDir + "/gr.dat");
-        pair_distr_12.PrintDistr(outDir + "/gr_12.dat");
+        pair_distr.PrintDistr( outDir + "/gr.dat");
+        pair_distr_cross.PrintDistr(outDir + "/gr_12.dat");
 
+        dens_distr.NormalizationNR(ngr, dens_distr_param.step);
+        dens_distr.PrintDistr(outDir + "/nr.dat");
 
-        dens_distr_1.NormalizationNR(ngr, dens_distr.step);
-        dens_distr_2.NormalizationNR(ngr, dens_distr.step);
-
-        dens_distr_1.PrintDistr(outDir + "/nr.dat");
-
-        obdm_1.Normalization();
-        obdm_2.Normalization();
-
-        obdm_1.PrintDistr(outDir + "/fr.dat");
+        obdm.Normalization();
+        obdm.PrintDistr(outDir + "/fr.dat");
 
 
         //	double n0 =  dnkup[0]*np/float(nkuppt);
@@ -448,10 +410,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         double k1;
 
-        moment_distr_1.Normalization(param_model.num_part, nkuppt);
-        moment_distr_2.Normalization(param_model.num_part, nkuppt);
-
-        moment_distr_1.PrintDistr(outDir + "/nk.dat");
+        moment_distr.Normalization(param_model.num_part, nkuppt);
+        moment_distr.PrintDistr(outDir + "/nk.dat");
 
         //***************************************************************************
 
@@ -498,23 +458,23 @@ void run (const string & inFile, const string & startingConfig, const string & o
         n_notused_cor = 1;
 
         ncol_cor = 1; // number of columns for 'mom_dist.dat'
-        statistics_cor(outDir + "/nk.dat", outDir + "/nk_av.dat", mom_distr.num_points, ncol_cor, n_notused_cor, nel_cor);
+        statistics_cor(outDir + "/nk.dat", outDir + "/nk_av.dat", mom_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
 
         ncol_cor = 1; //number of columns for 'gr.dat'
-        statistics_cor(outDir + "/gr.dat", outDir + "/gr_av.dat", pair_distr.num_points, ncol_cor, n_notused_cor, nel_cor);
+        statistics_cor(outDir + "/gr.dat", outDir + "/gr_av.dat", pair_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
 
         ncol_cor = 1; //number of columns for 'gr.dat'
-        statistics_cor(outDir + "/gr_12.dat", outDir + "/gr_12_av.dat", pair_distr.num_points, ncol_cor, n_notused_cor, nel_cor);
+        statistics_cor(outDir + "/gr_12.dat", outDir + "/gr_12_av.dat", pair_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
 
         ncol_cor = 1; //number of columns for 'fr.dat'
-        statistics_cor(outDir + "/fr.dat", outDir + "/fr_av.dat", obdm.num_points, ncol_cor, n_notused_cor, nel_cor);
+        statistics_cor(outDir + "/fr.dat", outDir + "/fr_av.dat", obdm_param.num_points, ncol_cor, n_notused_cor, nel_cor);
 
         ncol_cor = 1; //number of columns for 'nr.dat'
-        statistics_cor(outDir + "/nr.dat", outDir + "/nr_av.dat", dens_distr.num_points, ncol_cor, n_notused_cor, nel_cor);
+        statistics_cor(outDir + "/nr.dat", outDir + "/nr_av.dat", dens_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
 
 
-        Normalization(outDir + "/nk_av.dat", outDir + "/nk_av_norm.dat", mom_distr.num_points, param_model.num_part, param_model.num_comp);
-        Normalization(outDir + "/nr_av.dat", outDir + "/nr_av_norm.dat", dens_distr.num_points, param_model.num_part, param_model.num_comp);
+        Normalization(outDir + "/nk_av.dat", outDir + "/nk_av_norm.dat", mom_distr_param.num_points, param_model.num_part, param_model.num_comp);
+        Normalization(outDir + "/nr_av.dat", outDir + "/nr_av_norm.dat", dens_distr_param.num_points, param_model.num_part, param_model.num_comp);
 
         /*    if(i_FNDMC == 1)
     {
