@@ -6,6 +6,6 @@
 
 using namespace std;
 double WaveFunction(const ParamModel&, Locals&);
-double WaveFunction_MC(int, int, double, double, double, double **, double *, int, double, int); 
+double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, double& Psi_MC, int ipmac, double xm, int ncomp_MC);
 
 #endif

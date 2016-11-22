@@ -3,6 +3,7 @@
 
 
 #include <iostream>
+#include <map>
 #include <fstream>
 #include <iomanip>
 #include <cmath>
@@ -22,40 +23,7 @@
 #include "Statistics.h"
 #include "Wave_fun.h"
 #include "qmc.h"
-//
-//                               .-----.
-//                              /7  .  (
-//                             /   .-.  \
-//                            /   /   \  \
-//                           / `  )   (   )
-//                          / `   )   ).  \
-//                        .'  _.   \_/  . |
-//       .--.           .' _.' )`.        |
-//      (    `---...._.'   `---.'_)    ..  \
-//       \            `----....___    `. \  |
-//        `.           _ ----- _   `._  )/  |
-//          `.       /"  \   /"  \`.  `._   |
-//            `.    ((O)` ) ((O)` ) `.   `._\
-//              `-- '`---'   `---' )  `.    `-.
-//                 /                  ` \      `-.
-//               .'                      `.       `.
-//              /                     `  ` `.       `-.
-//       .--.   \ ===._____.======. `    `   `. .___.--`     .''''.
-//      ' .` `-. `.                )`. `   ` ` \          .' . '  8)
-//     (8  .  ` `-.`.               ( .  ` `  .`\      .'  '    ' /
-//      \  `. `    `-.               ) ` .   ` ` \  .'   ' .  '  /
-//       \ ` `.  ` . \`.    .--.     |  ` ) `   .``/   '  // .  /
-//        `.  ``. .   \ \   .-- `.  (  ` /_   ` . / ' .  '/   .'
-//          `. ` \  `  \ \  '-.   `-'  .'  `-.  `   .  .'/  .'
-//            \ `.`.  ` \ \    ) /`._.`       `.  ` .  .'  /
-//             |  `.`. . \ \  (.'               `.   .'  .'
-//          __/  .. \ \ ` ) \                     \.' .. \__
-//   .-._.-'     '"  ) .-'   `.                   (  '"     `-._.--.
-//  (_________.-====' / .' /\_)`--..__________..-- `====-. _________)
-//                   (.'(.'
-//
-
-
+#include "utils.h"
 
 using namespace std;
 
@@ -72,65 +40,39 @@ void run (const string & inFile, const string & startingConfig, const string & o
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
     double accrate;
 
-    CorFunParam pair_distr_param, obdm_param, dens_distr_param, mom_distr_param;
-
-    double Lmax;
 
     int in, io, ii, jpop, nsons, npopmean;
+    int nblck, niter, init, icrit;
+    int i_VMC, i_Drift = 0, i_FNDMC, i_OBDM;
 
-    ParamModel param_model;
+    map<string, double> paramMap;
+
+    paramMap = FillMap(inFile, outDir);
+
+    i_VMC   = paramMap["i_VMC"];
+    i_FNDMC = paramMap["i_FNDMC"];
+    niter = paramMap["niter"];
+    nblck = paramMap["nblck"];
+    init = paramMap["init"];
+    nwrite = paramMap["nwrite"];
+    icrit = paramMap["icrit"];
+    i_OBDM = paramMap["i_OBDM"];
+
+
+
+    ParamModel param_model(paramMap);
     param_model.seed = kkk;
 
-    int nblck, niter, init, icrit;
-
-    string str;
-
-    int i_VMC, i_Smart = 0, i_Drift = 0, i_FNDMC, i_OBDM_1, i_OBDM_2=0, i_stat_cor;
-
-    fstream filestr2(inFile, fstream::in | fstream::out);
-    filestr2>>str>>i_VMC>>str>>i_FNDMC>>str>>param_model.num_comp;
-    filestr2>>str>>param_model.num_part>>str>>param_model.width;
-    filestr2>>str>>param_model.scat_lenght_bos>>str>>param_model.scat_lenght;
-    filestr2>>str>>param_model.alfa>>str>>niter>>str>>nblck>>str;
-    filestr2>>param_model.num_walk>>str>>init>>str>>nwrite>>str>>icrit;
-    filestr2>>str>>i_OBDM_1>>str>>pair_distr_param.num_points>>str>>obdm_param.num_points;
-    filestr2>>str>>dens_distr_param.num_points>>str>>pair_distr_param.max_value;
-    filestr2>>str>>obdm_param.max_value>>str>>dens_distr_param.max_value;
-    filestr2>>str>>mom_distr_param.num_points>>str>>mom_distr_param.max_value>>str>>Lmax;
-    filestr2.close();
-
+    CorFunParam pair_distr_param(paramMap["Lmax_gr"], paramMap["mgr_g(r)"]);
+    CorFunParam obdm_param(paramMap["Lmax_OBDM"], paramMap["mgr_OBDM"]);
+    CorFunParam dens_distr_param(paramMap["Lmax_OBDM"], paramMap["mgr_dens"]);
+    CorFunParam mom_distr_param(paramMap["kmakx"], paramMap["numks"]);
 
     Locals coordinates(param_model);
     Locals force(param_model);
 
-    pair_distr_param.step = pair_distr_param.max_value/pair_distr_param.num_points;
-
-    obdm_param.step = obdm_param.max_value/obdm_param.num_points;
-    dens_distr_param.step = dens_distr_param.max_value/dens_distr_param.num_points;
-
-    mom_distr_param.step = mom_distr_param.max_value/mom_distr_param.num_points;
-
-    fstream outfile2(outDir+"/Output.dat", fstream::out| ios::app );
-    outfile2<<setprecision(18);
-    outfile2<<" i_VMC= "<<i_VMC<<" i_FNDMC= "<<i_FNDMC<<" ncomp= "<<param_model.num_comp;
-    outfile2<<" np= "<<param_model.num_part<<" width= "<<param_model.width;
-    outfile2<<" aB= "<<param_model.scat_lenght_bos<<" a= "<<param_model.scat_lenght<<"\n";
-    outfile2<<" alfa= "<<param_model.alfa<<" niter= "<<niter<<" nblck= ";
-    outfile2<<nblck<<" npop= "<<param_model.num_walk;
-    outfile2<<" init= "<<init<<" nwrite= "<<nwrite<<" icrit= "<<icrit<<"\n";
-    outfile2<<" i_OBDM= "<<i_OBDM_1<<"\n";
-    outfile2<<" mgr_g(r)= "<<pair_distr_param.num_points<<" mgr_OBDM= "<<obdm_param.num_points;
-    outfile2<<" mgr_dens= "<<dens_distr_param.num_points<<"\n";
-    outfile2<<" Lmax_g(r)= "<<pair_distr_param.max_value<<" Lmax_OBDM= "<<obdm_param.max_value;
-    outfile2<<" Lmax_dens= "<<dens_distr_param.max_value<<"\n";
-    outfile2<<" numks= "<<mom_distr_param.num_points<<" kmax= "<<mom_distr_param.max_value;
-    outfile2<<" Lmax_McM= "<<Lmax<<"\n";
-
-    outfile2.close();
     Energy **elocal;
     double **flocal;
-
-
 
     DistributionR pair_distr(pair_distr_param);
     DistributionR pair_distr_cross(pair_distr_param);
@@ -157,7 +99,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     if(init == 1)
         coordinates.ReadInitial(startingConfig);
     else
-        coordinates.GenerateInitial();
+        coordinates.GenerateInitial(startingConfig);
+
 
     ntemps = 0;
 
@@ -167,7 +110,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
     nacc = 0;
     nprova = 0;
 
-    force.SetZeroForceTotal(in);
+    force.SetZero();
 
     for(int iblck = 0; iblck < nblck; iblck++)
     {
@@ -183,7 +126,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         for(int iter = 0; iter < niter; iter++)
         {
-            //           cout << iter <<"\n";
+
             ntemps = ntemps + 1;
 
             eav.SetZero();
@@ -193,7 +136,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
             for(int ipop = 0; ipop < param_model.num_walk; ipop++)
             {
 
-                force.SetZeroForce();
+                force.metrop.SetZero();
 
                 emtnew.SetZero();
 
@@ -207,19 +150,16 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 obdm.SetZeroAx();
                 moment_distr.SetZeroAx();
 
-                coordinates.GaussianJump(ntemps, in, i_VMC, ipop, force.total);
+                coordinates.GaussianJump(ntemps, i_VMC, ipop, force);
 
                 PsiTotal = WaveFunction(param_model, coordinates);
 
                 Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
 
-                pair_distr.PairDistrFirst(coordinates.metrop, param_model);
-                pair_distr_cross.PairDistrCross(coordinates.metrop, param_model);
-                dens_distr.DensityFirst( coordinates.metrop, param_model);
-
 
                 if(i_Drift == 0)
                 {
+                     // This function is ugly, too many parameters ...
                      MetropolisDif(ipop, param_model, PsiTotal, flocal, coordinates, force, accepta, nprova, fvella, ntemps, in, i_VMC);
                 }
                 if(i_Drift == 1)
@@ -227,7 +167,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     accepta = 1;
                 }
 
-                //            cout << "accepta= " << accepta <<"\n";
                 if(accepta == 1)
                 {
                     if(ntemps > 1) nacc = nacc + 1;
@@ -242,20 +181,15 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                     force.Accept();
 
-                    pair_distr.Accept();
-                    pair_distr_cross.Accept();
+                    // this will be converted to virtual call to "ObserveAuxilaryState" in
+                    // coordinates.ObserveAuxilaryState(pair_distr, param_model);
+                    // coordinates.ObserveAuxilaryState(pair_distr_cross, param_model);
+                    pair_distr.PairDistrFirst(coordinates.auxil, param_model);
+                    pair_distr_cross.PairDistrCross(coordinates.auxil, param_model);
+                    dens_distr.DensityFirst(coordinates.auxil, param_model);
 
-                   // cout <<ntemps <<" "<<pair_distr_1.dra[5] << endl;
-
-                    dens_distr.Accept();
-
-                    if(i_OBDM_1 == 1)
-                    {
-
-                        //OBDM1D_11(Lmax,ncomp,np,width, aB, a, kr, xaux,fra,nfra,PsiTotal, dnkupa, numks, dk, &kkk, mgr2, dr2);
-                        OBDM1D_11(Lmax,param_model.num_comp,param_model.num_part,param_model.width, param_model.scat_lenght_bos, param_model.scat_lenght, kr, coordinates.auxil, obdm.fra, obdm.nfra, PsiTotal, moment_distr.dnkupa, mom_distr_param.num_points, mom_distr_param.step, &param_model.seed, obdm_param.num_points, obdm_param.step);
-
-                    }
+                    if(i_OBDM == 1)
+                        obdm.OBDM_Calc( param_model, coordinates.auxil, PsiTotal, moment_distr, mom_distr_param);
 
                 }
                 else
@@ -266,21 +200,20 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     enew.tot = eold.tot;
                     enew.tot = eold.tot;
 
-                    coordinates.NotAccept(ipop, in);
-                    force.NotAccept(ipop, in);
+                    coordinates.NotAccept(ipop);
+                    force.NotAccept(ipop);
 
-                    pair_distr.NotAccept(ipop, in);
-                    pair_distr_cross.NotAccept(ipop, in);
-                    dens_distr.NotAccept(ipop, in);
+                    pair_distr.NotAccept(ipop, io);
+                    pair_distr_cross.NotAccept(ipop, io);
+                    dens_distr.NotAccept(ipop, io);
                     obdm.NotAccept(ipop);
                     moment_distr.NotAccept(ipop);
 
                 }
 
-                if (i_FNDMC == 1)
-                {
+                if (i_FNDMC == 1)               
                     BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, icrit, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
-                }
+
 
                 else {nsons = 1;}
 
@@ -302,8 +235,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                         flocal[jpop][io] = fnew;
 
-                        coordinates.WalkerMatch(jpop, io);
-                        force.WalkerMatch(jpop, io);
+                        coordinates.WalkerMatch();
+                        force.WalkerMatch();
+
+
 
                         pair_distr.WalkerMatch(jpop, io);
                         pair_distr_cross.WalkerMatch(jpop, io);
@@ -334,6 +269,12 @@ void run (const string & inFile, const string & startingConfig, const string & o
             ii = in;
             in = io;
             io = ii;
+
+            //newPage should become oldPage
+            // and than newPage should be cleared
+
+            coordinates.PageSwap();
+            force.PageSwap();
 
             // Energy::Normalization
 
@@ -384,11 +325,9 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 npopmean = 0;
             }
         }
-        //		 cout << ntemps <<" "<<Epar/(2.0*dd)<<" "<<Epar1/(2.0*dd)<<"\n";
-
         //********************************************************************************************
 
-        double r1;
+
 
         pair_distr.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
         pair_distr_cross.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
@@ -408,7 +347,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
         //	double n0 =  dnkup[0]*np/float(nkuppt);
         //	double n0_22 =  dnkup_22[0]*np/float(nkuppt);
 
-        double k1;
+
 
         moment_distr.Normalization(param_model.num_part, nkuppt);
         moment_distr.PrintDistr(outDir + "/nk.dat");
@@ -424,7 +363,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
             for(int ic = 0; ic < param_model.num_comp; ic++)
             {
                 for(int ip = 0; ip < param_model.num_part; ip++ )
-                    {outfile2<<coordinates.total[ic][ip][i][in]<<"\n"; }
+                   // {outfile2<<coordinates.total[ic][ip][i][in]<<"\n"; }
+                    {outfile2<<coordinates.oldPage[i].GetParticleComp(ic,ip)<<"\n"; }
             }
         }
         outfile2.close();
@@ -438,7 +378,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
         //  Here we take the average of all observables after each block *
         //**************************************************************//
 
-        int n_notused,  nfull, nfull_rew, ncol_rew, ncol, nel;
+        int n_notused,  nfull, ncol, nel;
 
         // Parameters for the average of the energy//
 
@@ -476,14 +416,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
         Normalization(outDir + "/nk_av.dat", outDir + "/nk_av_norm.dat", mom_distr_param.num_points, param_model.num_part, param_model.num_comp);
         Normalization(outDir + "/nr_av.dat", outDir + "/nr_av_norm.dat", dens_distr_param.num_points, param_model.num_part, param_model.num_comp);
 
-        /*    if(i_FNDMC == 1)
-    {
-    Extrapolation("../VMC/Measur/nk_av_norm.dat","Measur/nk_av_norm.dat", "../Extr/nk_extr.dat", "../Extr/nk_extr_lin.dat", numks);
-    Extrapolation("../VMC/Measur/gr_av.dat","Measur/gr_av.dat", "../Extr/gr_extr.dat", "../Extr/gr_extr_lin.dat", mgr1);
-    Extrapolation("../VMC/Measur/gr_12_av.dat","Measur/gr_12_av.dat", "../Extr/gr_12_extr.dat", "../Extr/gr_12_extr_lin.dat", mgr1);
-    Extrapolation("../VMC/Measur/fr_av.dat","Measur/fr_av.dat", "../Extr/fr_extr.dat", "../Extr/fr_extr_lin.dat", mgr2);
-    Extrapolation("../VMC/Measur/nr_av_norm.dat","Measur/nr_av_norm.dat", "../Extr/nr_extr.dat", "../Extr/nr_extr_lin.dat", mgr3);
-    }*/
     }
 
     for(int i = 0; i < dmnpop; i++)

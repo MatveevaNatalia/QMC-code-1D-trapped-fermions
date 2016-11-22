@@ -8,10 +8,9 @@ using namespace std;
 
 void PairDistribution_calc(double **xMT, double *graMT_11, double *graMT_22, double *graMT_12, int mgr, double dr, int ncomp, int np)
 {
-    // I do not do the xact counting how many times
-    // the distance is less than Lmax
+
     double Lmax, x1, x2, x12;
-    int igr1, igr2, igr12;
+    int igr1, igr12;
     Lmax = dr*mgr;
 
     for(int i = 0; i < np; i++) // PairDistribution::CalculateSelf
@@ -27,11 +26,6 @@ void PairDistribution_calc(double **xMT, double *graMT_11, double *graMT_22, dou
                 graMT_11[igr1] = graMT_11[igr1] + 1;
             }
 
-            //		if(x2 < Lmax)
-            //		{
-            //			igr2 = x2/dr;
-            //			graMT_22[igr2] = graMT_22[igr2] + 1;
-            //		}
         }
     }
 

@@ -28,9 +28,7 @@ void MomentDistr::NotAccept(int ipop){
 
 void MomentDistr::WalkerMatch(int jpop){
     for(int i = 0; i < num_points; i++)
-    {
         dnkuplocal[i][jpop] = dnkupa[i];
-    }
 }
 
 void MomentDistr::WalkerCollect(int nsons){
@@ -52,9 +50,7 @@ void MomentDistr::PrintDistr(const string& name_file)
     {
 
         bin = float(ik) * step;
-        outfile<<bin<<" "<<dnkup[ik]<<"\n";
-        //cout<<k1<<" "<<dnkup[ik]<<"\n";
-
+        outfile<<bin<<" "<<dnkup[ik]<<"\n";      
     }
     outfile.close();
 }

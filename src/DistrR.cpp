@@ -73,19 +73,18 @@ void DistributionR::NormalizationNR(int ngr, float step){
     }
 }
 
-void DistributionR::PairDistrFirst(double **xMT, const ParamModel& param_model )
+void DistributionR::PairDistrFirst(const Configuration& xMT, const ParamModel& param_model )
 {
     double Lmax, deltax;
     int bin_number;
     Lmax = step*num_points;
-
-
 
     for(int i = 0; i < param_model.num_part ; i++)
     {
         for(int j = i+1; j < param_model.num_part; j++)
         {
-            deltax = fabs(xMT[0][i] - xMT[0][j]);
+
+            deltax = fabs(xMT.GetParticleComp(0,i) - xMT.GetParticleComp(0,j));
 
             if(deltax < Lmax)
             {
@@ -97,28 +96,7 @@ void DistributionR::PairDistrFirst(double **xMT, const ParamModel& param_model )
     }
 }
 
-void DistributionR::PairDistrSecond(double **xMT, const ParamModel& param_model )
-{
-    double Lmax, deltax;
-    int bin_number;
-    Lmax = step*num_points;
-
-    for(int i = 0; i < param_model.num_part; i++)
-    {
-        for(int j = i+1; j < param_model.num_part; j++)
-        {
-            deltax = fabs(xMT[1][i] - xMT[1][j]);
-
-            if(deltax < Lmax)
-            {
-                bin_number = deltax/step;
-                draMT[bin_number] += 1;
-            }
-        }
-    }
-}
-
-void DistributionR::PairDistrCross(double **xMT, const ParamModel& param_model)
+void DistributionR::PairDistrCross(const Configuration& xMT, const ParamModel& param_model)
 {
     double Lmax, deltax;
     int  bin_number;
@@ -130,7 +108,8 @@ void DistributionR::PairDistrCross(double **xMT, const ParamModel& param_model)
         {
             for(int j = 0; j < param_model.num_part; j++)
             {
-                deltax = fabs(xMT[0][i] - xMT[icomp][j]);
+
+                deltax = fabs(xMT.GetParticleComp(0,i) - xMT.GetParticleComp(icomp,j));
                 if(deltax < Lmax)
                 {
                     bin_number = deltax/step;
@@ -141,34 +120,18 @@ void DistributionR::PairDistrCross(double **xMT, const ParamModel& param_model)
     }
 }
 
-
-void DistributionR::DensityFirst(double **xMT, const ParamModel& param_model)
+void DistributionR::DensityFirst(const Configuration& xMT, const ParamModel& param_model)
 {
-    double Lmax;
+    double Lmax, x_modul;
     int bin_num;
     Lmax = step*num_points;
 
     for(int i = 0; i < param_model.num_part; i++)
     {
-        if(fabs(xMT[0][i]) < Lmax)
-        {
-            bin_num = fabs(xMT[0][i])/step;
-            draMT[bin_num] += 1;
-        }
-    }
-}
-
-void DistributionR::DensitySecond(double **xMT, const ParamModel& param_model)
-{
-    double Lmax;
-    int bin_num;
-    Lmax = step*num_points;
-
-    for(int i = 0; i < param_model.num_part; i++)
-    {
-        if(fabs(xMT[1][i]) < Lmax)
-        {
-            bin_num = fabs(xMT[1][i])/step;
+        x_modul = fabs(xMT.GetParticleComp(0,i));      
+        if(x_modul < Lmax)
+        {            
+            bin_num = x_modul/step;
             draMT[bin_num] += 1;
         }
     }
@@ -182,13 +145,9 @@ void DistributionR::PrintDistr(const string& name_file)
     {
         coord_bin = float(i) * step + step/2.0;
         outfile<<coord_bin<<" "<<dr[i]<<"\n";
-        // cout<<r1<<" "<<gr_11[i]<<" "<<gr_12[i]<<"\n"; Impossible to do in the method?
     }
     outfile.close();
 }
-
-
-
 
 DistributionR::~DistributionR(){
     delete[] dra;

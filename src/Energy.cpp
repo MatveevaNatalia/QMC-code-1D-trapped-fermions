@@ -1,20 +1,20 @@
 
 #include "Energy.h"
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <cmath>
 
+
 using namespace std;
 
-//void Energy_calc(double **xaux, double **FT, double *Etot, double *Epot_trap, double *Ekin,  int num_comp, int np, double aB, double a, double width)
-//void Energy_calc(double **xaux, double **FT, Energy& energy,  int num_comp, int np, double aB, double a, double width)
 
 
-void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& param_mode){
+void Energy_calc(const Configuration& xMT, Configuration& FMT, Energy& energy, const ParamModel& param_mode){
     double Ekin_J1 = 0, Ekin_J2 = 0, Ekin_G = 0, Ekin_GJ1 = 0;
     double Ekin_GJ2 = 0, Ekin_J1J2 = 0, Epot = 0, Ekin_total = 0;
-    double xi, xk;
+    double xi, xk, force_temp;
     double **FG, **FJ1, **FJ2;
     double sum = 0;
     int num_comp, num_part;
@@ -45,20 +45,18 @@ void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& p
         }
     }
 
-    //Forces (WITHOUT factor of 2)
-
     for(int gamma = 0; gamma < num_comp; gamma++)
     {
         for(int k = 0; k < num_part; k++)
-        {
-            xk = xMT[gamma][k];
+        {        
+            xk = xMT.GetParticleComp(gamma,k);
 
             FG[gamma][k] = -2.0*width*xk;
 
             for(int i = 0; i < num_part; i++)
             {
-                if(i != k) {
-                    xi = xMT[gamma][i];
+                if(i != k) {                    
+                    xi = xMT.GetParticleComp(gamma,i);
                     FJ1[gamma][k] +=  ForcePartial(xk, xi, scat_length_bos);
                 }
             }
@@ -69,18 +67,14 @@ void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& p
                 {
                     for(int i  = 0; i < num_part; i++)
                     {
-                        xi = xMT[alpha][i];
+                        xi = xMT.GetParticleComp(alpha,i);
+
                         FJ2[gamma][k] += ForcePartial(xk, xi, scat_length);
                     }
                 }
             }
-
-            FMT[gamma][k] = 2.0*(FG[gamma][k] + FJ1[gamma][k] + FJ2[gamma][k]);
-
-            //	cout<<"FG: "<<"\n";
-            //	cout<<"gamma= "<<gamma<<" k= "<<k<<" "<<FG[gamma][k];
-            //  cout<<" "<< FJ1[gamma][k]<<" "<<FJ2[gamma][k]<<" "<<FT[gamma][k]<<"\n";
-
+            force_temp = 2.0*(FG[gamma][k] + FJ1[gamma][k] + FJ2[gamma][k]);
+            FMT.SetParticleComp(gamma,k,force_temp);
         }
     }
 
@@ -88,15 +82,16 @@ void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& p
     for(int gamma = 0; gamma < num_comp; gamma++)
     {
         for(int k = 0; k < num_part; k++)
-        {
-            xk = xMT[gamma][k];
+        {          
+            xk = xMT.GetParticleComp(gamma,k);
 
             Ekin_J1 = Ekin_J1 - 0.5*FJ1[gamma][k]*FJ1[gamma][k];
 
             for(int i = 0; i < num_part; i++)
             {
-                if( i!= k){
-                    xi = xMT[gamma][i];
+                if( i!= k){                   
+                    xi = xMT.GetParticleComp(gamma,i);
+
                     Ekin_J1 += EnergyPartial(xk, xi, scat_length_bos);}
             }
 
@@ -107,8 +102,8 @@ void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& p
                 if(alpha != gamma)
                 {
                     for(int i = 0; i < num_part; i++)
-                    {
-                        xi = xMT[alpha][i];
+                    {                       
+                        xi = xMT.GetParticleComp(alpha, i);
                         Ekin_J2 += EnergyPartial(xk, xi, scat_length);
                     }
 
@@ -133,16 +128,13 @@ void Energy_calc(double **xMT, double** FMT, Energy& energy, const ParamModel& p
     for(int gamma = 0; gamma < num_comp; gamma++)
     {
         for(int k = 0; k < num_part; k++)
-            sum = sum + 0.25*FMT[gamma][k]*FMT[gamma][k];
+            force_temp = FMT.GetParticleComp(gamma,k);
+            sum = sum + 0.25 * force_temp * force_temp;
     }
 
-    energy.kin = 0.5*sum;
+    energy.kin = 0.5 * sum;
 
     energy.pot = Epot;
-
-    //cout<<"Ekin_J1 = "<<Ekin_J1<<" Ekin_J2= "<<Ekin_J2<<" Ekin_G= "<<Ekin_G;
-    //cout<<" Ekin_GJ1= "<< Ekin_GJ1<<" Ekin_GJ2= "<<Ekin_GJ2;
-    //cout<<" Ekin_J1J2= "<<Ekin_J1J2<<" Epot_trap = "<<Epot<<"\n";
 
     for(int ic = 0; ic < num_comp; ic++)
         delete [] FG[ic];

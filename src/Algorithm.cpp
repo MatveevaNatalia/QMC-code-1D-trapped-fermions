@@ -4,7 +4,8 @@ using namespace std;
 
 void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **flocal, Locals& coordinates, Locals& force, int& accepta, int& nprova, double& fvella, int ntemps, int in, int i_VMC)
 {
-    double fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;    
+    double fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;
+    double force_old, force_new, x_old, x_new;
     if(ntemps == 1)
     {
         fvella = 0.0;
@@ -18,10 +19,16 @@ void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **
         {
             for(int ip = 0; ip < param_model.num_part; ip ++)
             {
-                DDF1 = force.total [inc][ip][ipop][in] + force.metrop[inc][ip];
-                DDF2 = force.total[inc][ip][ipop][in] - force.metrop[inc][ip];
-                DDS = coordinates.metrop[inc][ip] - coordinates.total[inc][ip][ipop][in];
-                QQ = QQ + 0.5*DDF1*(0.5*dte*DDF2-DDS);
+
+                force_old = force.oldPage[ipop].GetParticleComp(inc, ip);
+                force_new = force.metrop.GetParticleComp(inc, ip);
+                x_old = coordinates.metrop.GetParticleComp(inc, ip);
+                x_new = coordinates.oldPage[ipop].GetParticleComp(inc, ip);
+
+                DDF1 = force_old + force_new;
+                DDF2 = force_old - force_new;
+                DDS = x_new - x_old;
+                QQ = QQ + 0.5 * DDF1 * (0.5 * dte * DDF2 - DDS);
             }
         }
     }
@@ -49,6 +56,7 @@ void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **
 
 //****************************************************************************//
 
+
 void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, double dte, int icrit, double E, double enew, double eold, long *kkk, int npop)
 {
     int icrmin, icrmax, nsaux;
@@ -59,7 +67,7 @@ void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, dou
     ampi = 0.5 * float ( icrmin + icrmax ) / float ( icrmin );
 
     *nsons = 1;
-    //cout<<"accepta="<<accepta<<" ";
+
     if(accepta == 1)
     {
         if(ntemps > 1)
@@ -105,7 +113,8 @@ void Gauss1D(double * x, double alfa, long *kkk)
 }
 
 //**********************************************//
-
+// Taken from Numerical receipts
+//**********************************************//
 #define IM1 2147483563
 #define IM2 2147483399
 #define AM (1.0/IM1)

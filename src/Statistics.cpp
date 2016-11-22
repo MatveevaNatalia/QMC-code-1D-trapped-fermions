@@ -5,49 +5,7 @@
 #include <cmath>
 using namespace std;
 
-void Extrapolation(string name_VMC, string name_DMC, string name_extr, string name_extr1, int npt)
-{
 
-    double *rr, *fun_VMC, *fun_DMC, *err_VMC, *err_DMC, sigma;
-    rr = new double[npt];
-    fun_VMC = new double[npt];
-    fun_DMC = new double[npt];
-    err_VMC = new double[npt];
-    err_DMC = new double[npt];
-
-
-    fstream filestr(name_VMC, fstream::in | fstream::out);
-    fstream filestr1(name_DMC, fstream::in | fstream::out);
-
-    for (int i = 0; i< npt; i++ )
-    {
-        filestr >>setprecision(12)>> rr[i]>>fun_VMC[i]>>err_VMC[i];
-        //        cout<<i<<" "<<rr[i]<<" "<<fun_VMC[i]<<" "<<err_VMC[i]<<"\n";
-        filestr1 >>setprecision(12)>> rr[i]>>fun_DMC[i]>>err_DMC[i];
-    }
-    filestr.close();
-    filestr1.close();
-
-    fstream outfile(name_extr, fstream::out );
-    fstream outfile1(name_extr1, fstream::out );
-
-    for (int i = 0; i< npt; i++ )
-    {
-        sigma = sqrt(err_VMC[i]*err_VMC[i]+err_DMC[i]*err_DMC[i]);
-        outfile<<setprecision(12)<< rr[i]<<" "<<fun_DMC[i]*fun_DMC[i]/fun_VMC[i]<<" "<<sigma<<"\n";
-        outfile1<<setprecision(12)<< rr[i]<<" "<<2.*fun_DMC[i]-fun_VMC[i]<<" "<<sigma<<"\n";
-    }
-
-    outfile.close();
-    outfile1.close();
-
-    delete [] rr;
-    delete [] fun_DMC;
-    delete [] fun_VMC;
-    delete [] err_VMC;
-    delete [] err_DMC;
-
-}
 
 void Normalization(string name_file, string name_file_1, int num, int np, int nc)
 {

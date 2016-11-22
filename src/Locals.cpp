@@ -3,196 +3,125 @@
 
 using namespace std;
 
-Locals::Locals(ParamModel param_model){
+void Locals::ReadInitial(const string & startingConfig){
 
-    num_comp_saved = param_model.num_comp;
-    num_part_saved = param_model.num_part;
-    num_walk_saved = param_model.num_walk;
-    seed_saved = param_model.seed;
-    alfa_saved = param_model.alfa;
-    step_jump = alfa_saved/4.0;
-
-    auxil = new double*[num_comp_saved];
-    for(int i = 0; i < num_comp_saved; i++) auxil[i] = new double[num_part_saved];
-
-    total = new double***[num_comp_saved];
-    for(int i = 0; i < num_comp_saved; i++)
-    {
-        total[i] = new double**[num_part_saved];
-        for(int j = 0; j < num_part_saved; j++)
-        {
-            total[i][j] = new double*[dmnpop];
-            for(int m = 0; m < dmnpop; m++)
-                total[i][j][m] = new double[2];
-        }
-    }
-
-    metrop = new double*[num_comp_saved];
-    for(int i = 0; i < num_comp_saved; i++) metrop[i] = new double[num_part_saved];
-
-}
-void Locals::Locals::ReadInitial(const string & startingConfig){
-    double etemp;
     fstream filestr(startingConfig, fstream::in | fstream::out);
     filestr>>setprecision(18);
-    filestr >> num_walk_saved;
-    for (int ipop = 0; ipop < num_walk_saved; ipop++ )
-    {
+    filestr >> num_walk;
+    for (int ipop = 0; ipop < num_walk; ipop++ ){
+        double etemp;
         filestr >> etemp;
-        for(int ic = 0; ic < num_comp_saved;ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++)
-            {
-                filestr >> total[ic][ip][ipop][0];
+        vector<vector<double>> vec_comp;
+        for(int ic = 0; ic < num_comp;ic++){
+            vector<double> vec_part;
+            for(int ip = 0; ip < num_part; ip++){
+                 double temp_coord;
+                 filestr >> temp_coord;
+                 vec_part.push_back(temp_coord);
             }
+            vec_comp.push_back(vec_part);
         }
-
+        Configuration config(vec_comp);
+        PushOldConfig(config);
     }
-    filestr.close();
+
 }
 
-void Locals::GenerateInitial()
-{
+void Locals::GenerateInitial(const string & startingConfig){
     long seed = -13156;
-    for (int ipop = 0; ipop < num_walk_saved; ipop++ )
-    {
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++) {total[ic][ip][ipop][0] = ran2(&seed);}
 
-        }
-    }
-
-    fstream outfile("../1D_Qt/Data/inprev.dat", fstream::out );
-    outfile << setprecision(17);
-    outfile<<num_walk_saved<<"\n";
-    for(int ipop = 0; ipop < num_walk_saved;ipop++)
-    {
+    fstream outfile(startingConfig, fstream::out );
+    outfile << setprecision(18);
+    outfile<<num_walk<<"\n";
+    for(int ipop = 0; ipop < num_walk;ipop++){
         outfile<<ipop<<"\n";
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++)
-                outfile<<total[ic][ip][ipop][0]<<"\n";
+        vector<vector<double>> vec_comp;
+        for(int ic = 0; ic < num_comp; ic++){
+            vector<double> vec_part;
+            for(int ip = 0; ip < num_part; ip++){
+                double temp_coord = ran2(&seed);
+                outfile<<temp_coord<<"\n";
+                vec_part.push_back(temp_coord);
+            }
+            vec_comp.push_back(vec_part);
         }
+        Configuration config (vec_comp);
+        PushOldConfig(config);
     }
     outfile.close();
 }
 
-void Locals::GaussianJump(int ntemps, int in, int i_VMC, int ipop, double**** force_total){
-    double xgaus;
-
-    for (int ic = 0; ic < num_comp_saved; ic++)
+void Locals::GaussianJump(int ntemps, int i_VMC, int ipop, Locals& force)
+{
+    double xgaus, x_old, force_old, x_new;
+    vector<vector<double>> vec_comp;
+    for (int ic = 0; ic < num_comp; ic++)
     {
-        for(int ip = 0; ip < num_part_saved; ip++)
+        vector<double> vec_part;
+        for(int ip = 0; ip < num_part; ip++)
         {
+
+            x_old = oldPage[ipop].GetParticleComp(ic, ip);
             if (ntemps > 1)
-                Gauss1D(&xgaus, alfa_saved, &seed_saved);
+                Gauss1D(&xgaus, alfa, &seed);
             else
                 xgaus = 0.0;
 
-            if (i_VMC == 1){
-                metrop[ic][ip] = total[ic][ip][ipop][in] + xgaus;
-
+            if (i_VMC == 1)
+            {
+                x_new = x_old + xgaus;
+                vec_part.push_back(x_new);
             }
             else
-                metrop[ic][ip] = total[ic][ip][ipop][in] + xgaus + force_total[ic][ip][ipop][in] * step_jump;
+            {
+                force_old = force.oldPage[ipop].GetParticleComp(ic, ip);
+                x_new = x_old + xgaus + force_old * step_jump;
+                vec_part.push_back(x_new);
+            }
         }
+        vec_comp.push_back(vec_part);
     }
+    Configuration config(vec_comp);
+    metrop = config;
 }
 
 void Locals::Accept(){
-    for(int ic = 0; ic < num_comp_saved; ic++)
-    {
-        for(int ip = 0; ip < num_part_saved; ip++)
-        {
-            auxil[ic][ip] = metrop[ic][ip];
-        }
-    }
+    auxil = metrop;
 }
 
-void Locals::NotAccept(int ipop, int in){
-    for(int ic = 0; ic < num_comp_saved; ic++)
-    {
-        for(int ip = 0; ip < num_part_saved; ip++)
-            auxil[ic][ip] = total[ic][ip][ipop][in];
-    }
-}
-
-void Locals::WalkerMatch(int jpop, int io){
-    for(int ic = 0; ic < num_comp_saved; ic++)
-    {
-        for(int ip = 0; ip < num_part_saved; ip++)
-            total[ic][ip][jpop][io] = auxil[ic][ip];
-    }
-}
-
-void Locals::SetZeroForceTotal(int in){
-    for(int j = 0; j < num_walk_saved; j++ )
-    {
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++)
-            {
-                total[ic][ip][j][in] = 0.0;
-            }
-        }
-    }
-}
-
-void Locals::SetZeroForce(){
-    for(int ic = 0; ic < num_comp_saved; ic++)
-    {
-        for(int ip = 0; ip < num_part_saved; ip++)
-        {
-            metrop[ic][ip] = 0.0;
-        }
-    }
+void Locals::NotAccept(int ipop){
+    auxil = oldPage[ipop];
 
 }
 
-/*void Locals::PrintConfig(const string& name_file, double** elocal_tot, int in)
-{
-    fstream outfile(name_file, fstream::out ); //Coordinate::Print
-    outfile<<num_walk_saved<<"\n";
-    outfile<<setprecision(18);
-    for(int i = 0; i < num_walk_saved;i++)
-    {
-        outfile<<elocal_tot[i][in]<<"\n";
-        for(int ic = 0; ic < num_comp_saved; ic++)
-        {
-            for(int ip = 0; ip < num_part_saved; ip++ )
-                outfile<<total[ic][ip][i][in]<<"\n";
-        }
-    }
-    outfile.close();
-}*/
-
-
-
-
-
-Locals::~Locals(){
-    for(int i = 0; i < num_comp_saved; i++)
-    {
-        for(int j = 0; j < num_part_saved; j++)
-        {
-            for(int m = 0; m < dmnpop; m++)
-                delete [] total[i][j][m];
-
-            delete[] total[i][j];
-        }
-        delete [] total[i];
-    }
-    delete [] total;
-
-    for(int i = 0; i < num_comp_saved; i++)
-        delete [] auxil[i];
-    delete [] auxil;
-
-
-    for(int i = 0; i < num_comp_saved; i++)
-        delete [] metrop[i];
-    delete [] metrop;
+void Locals::WalkerMatch(){
+//    newPage[jpop] = auxil;
+    newPage.push_back(auxil);
 }
+
+ void Locals::SetZero(){
+    for (int i = 0; i < oldPage.size(); i++)
+        oldPage[i].SetZero();
+ }
+
+ void Locals::PageSwap(){
+     oldPage = newPage;
+     newPage.clear();
+ }
+
+void Locals::PrintOld(){
+    for (int i = 0; i < oldPage.size(); i++)
+        oldPage[i].PrintConfig();
+}
+
+void Locals::PrintNew(){
+    for (int i = 0; i < newPage.size(); i++)
+        newPage[i].PrintConfig();
+}
+
+
+
+
+
 
 

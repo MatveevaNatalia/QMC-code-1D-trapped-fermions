@@ -2,7 +2,8 @@
 #define OBDM_H
 
 #include "qmc.h"
-
+#include "Locals.h"
+#include "MomDistr.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -36,10 +37,10 @@ public:
 
     void PrintDistr(const string& name_file);
 
+    void OBDM_Calc( ParamModel& param_model, const Configuration& xaux, double Psi_old, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param);
+
     ~OBDM();
 };
 
-void OBDM1D_11(double, int, int, double, double, double, double *, double **, double *, double *, double, double *, int, double, long *, int, double);
-void OBDM1D_22(double, int, int, double, double, double, double *, double **, double *, double *, double, double *, int, double, long *, int, double);
 
 #endif

@@ -18,13 +18,14 @@ double WaveFunction(const ParamModel& param_model, Locals& coordinates)
     {
         for(int i = 0; i < param_model.num_part; i++)
         {
-            xi = coordinates.metrop[alpha][i];
 
+            xi = coordinates.metrop.GetParticleComp(alpha,i);
             PsiG = PsiG -param_model.width*xi*xi;
 
             for(int j = i+1; j < param_model.num_part; j++)
             {
-                xj = coordinates.metrop[alpha][j];
+
+                xj = coordinates.metrop.GetParticleComp(alpha,j);
                 PsiJ1 = PsiJ1 + log(fabs(fabs(xi - xj)-param_model.scat_lenght_bos));
             }
         }
@@ -38,8 +39,9 @@ double WaveFunction(const ParamModel& param_model, Locals& coordinates)
             {
                 for(int j = 0; j < param_model.num_part; j++)
                 {
-                    xi = coordinates.metrop[alpha][i];
-                    xj = coordinates.metrop[beta][j];
+
+                    xi = coordinates.metrop.GetParticleComp(alpha,i);
+                    xj = coordinates.metrop.GetParticleComp(beta,j);
                     PsiJ2 = PsiJ2 + log(fabs(fabs(xi-xj)-param_model.scat_lenght));
                 }
             }
@@ -50,42 +52,45 @@ double WaveFunction(const ParamModel& param_model, Locals& coordinates)
 
     return PsiTotal;
 
-    //cout<<" LogPsiG= "<<PsiG<<" LogPsiJ1= "<<PsiJ1<<" LogPsiJ2= "<<PsiJ2<<"\n";
 
 }
 
 //****************************************************************
 
 
-double WaveFunction_MC(int ncomp, int np, double aB, double a, double width, double **xaux, double *Psi_MC, int ipmac, double xm, int ncomp_MC) 
+double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, double &Psi_MC, int ipmac, double xm, int ncomp_MC)
 {
-
     double xi, xj;
     double PsiG = 0, PsiJ1 = 0, PsiJ2 = 0;
+    int ncomp, np;
+    double width, aB, a;
 
-    //cout<<" From MC wf: "<<" ipmac= "<<ipmac<<"xm= "<<xm<<"\n";
+    ncomp = param_model.num_comp;
+    np = param_model.num_part;
+    width = param_model.width;
+    aB = param_model.scat_lenght_bos;
+    a = param_model.scat_lenght;
 
     for(int alpha = 0; alpha < ncomp; alpha++)
     {
         for(int i = 0; i < np; i++)
         {
             if(alpha == ncomp_MC && i == ipmac) {xi = xm;}
-            else {xi = xaux[alpha][i];}
+
+            else {xi = xaux.GetParticleComp(alpha, i);}
 
             PsiG = PsiG -width*xi*xi;
 
             for(int j = i+1; j < np; j++)
             {
                 if(alpha == ncomp_MC && j == ipmac) {xj = xm;}
-                else {xj = xaux[alpha][j];}
 
-                //			cout<<" From MC wf: "<< "xi= "<<xi<<" xj= "<<xj<<"\n";
+                else {xj = xaux.GetParticleComp(alpha, j);}
 
                 PsiJ1 = PsiJ1 + log(fabs(fabs(xi - xj)-aB));
             }
         }
     }
-
 
 
     for(int alpha = 0; alpha < ncomp; alpha++)
@@ -97,10 +102,10 @@ double WaveFunction_MC(int ncomp, int np, double aB, double a, double width, dou
                 for(int j = 0; j < np; j++)
                 {
                     if(alpha == ncomp_MC && i == ipmac) {xi = xm;}
-                    else {xi = xaux[alpha][i];}
+                    else {xi = xaux.GetParticleComp(alpha,i);}
 
                     if(beta == ncomp_MC && j == ipmac) {xj = xm;}
-                    else {xj = xaux[beta][j];}
+                    else {xj = xaux.GetParticleComp(beta, j);}
 
                     PsiJ2 = PsiJ2 + log(fabs(fabs(xi-xj)-a));
                 }
@@ -110,10 +115,7 @@ double WaveFunction_MC(int ncomp, int np, double aB, double a, double width, dou
         }
     }
 
-    *Psi_MC = PsiG + PsiJ1 + PsiJ2;
-
-    //cout<<" LogPsiG= "<<PsiG<<" LogPsiJ1= "<<PsiJ1<<" LogPsiJ2= "<<PsiJ2<<"\n";
-
+    Psi_MC = PsiG + PsiJ1 + PsiJ2;
 }
 
 

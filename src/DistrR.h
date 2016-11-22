@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include "qmc.h"
+#include "Locals.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -39,12 +40,10 @@ public:
     void NormalizationGR(int ngr, int ncomp, int np, double step);
     void NormalizationNR(int ngr, float step);
 
-    void PairDistrFirst(double **xMT, const ParamModel& param_model);
-    void PairDistrSecond(double **xMT, const ParamModel& param_model);
-    void PairDistrCross(double **xMT, const ParamModel& param_model);
+    void PairDistrFirst(const Configuration& xMT, const ParamModel& param_model);    
+    void PairDistrCross(const Configuration& xMT, const ParamModel& param_model);
+    void DensityFirst(const Configuration& xMT, const ParamModel& param_model);
 
-    void DensityFirst(double **xMT, const ParamModel& param_model);
-    void DensitySecond(double **xMT, const ParamModel& param_model);
 
     void PrintDistr(const string& name_file);
 
