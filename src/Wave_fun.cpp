@@ -4,11 +4,21 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
-
-
 using namespace std;
 
-double WaveFunction(const ParamModel& param_model, Locals& coordinates)
+WaveFunction::WaveFunction(){
+    flocal = new double*[dmnpop];
+    for(int i = 0; i < dmnpop; i++)
+        flocal[i] = new double[2];
+}
+
+WaveFunction::~WaveFunction(){
+    for(int i = 0; i < dmnpop; i++)
+        delete [] flocal[i];
+    delete [] flocal;
+}
+
+void WaveFunction::Calc(const ParamModel& param_model, Locals& coordinates)
 {
 
     double PsiG = 0, PsiJ1 = 0, PsiJ2 = 0;
@@ -48,20 +58,16 @@ double WaveFunction(const ParamModel& param_model, Locals& coordinates)
         }
     }
 
-    double PsiTotal = PsiG + PsiJ1 + PsiJ2;
-
-    return PsiTotal;
-
-
+    fmetrop = PsiG + PsiJ1 + PsiJ2;
 }
 
 //****************************************************************
 
 
-double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, double &Psi_MC, int ipmac, double xm, int ncomp_MC)
+double WaveFunction::WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC)
 {
     double xi, xj;
-    double PsiG = 0, PsiJ1 = 0, PsiJ2 = 0;
+    double PsiG = 0, PsiJ1 = 0, PsiJ2 = 0, Psi_MC;
     int ncomp, np;
     double width, aB, a;
 
@@ -116,6 +122,8 @@ double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux,
     }
 
     Psi_MC = PsiG + PsiJ1 + PsiJ2;
+
+    return Psi_MC;
 }
 
 

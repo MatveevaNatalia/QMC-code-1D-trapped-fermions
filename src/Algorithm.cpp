@@ -1,19 +1,18 @@
 #include "Algorithm.h"
-
 using namespace std;
 
-void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **flocal, Locals& coordinates, Locals& force, int& accepta, int& nprova, double& fvella, int ntemps, int in, int i_VMC)
+void MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, Locals& coordinates, Locals& force, int& accepta, int& nprova, int ntemps, int in, int i_VMC)
 {
-    double fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;
+    double  fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;
     double force_old, force_new, x_old, x_new;
     if(ntemps == 1)
     {
-        fvella = 0.0;
+        wave_func.SetOldZero();
         QQ = 0.0;
     }
     else
-    {
-        fvella = flocal[ipop][in];
+    {        
+        wave_func.SetOld(ipop,in);
         QQ = 0.0;
         for(int inc = 0; inc < param_model.num_comp; inc++)
         {
@@ -34,9 +33,9 @@ void MetropolisDif(int ipop, ParamModel& param_model, double PsiTotal, double **
     }
 
     if(i_VMC == 1)
-        fdif = 2.0 * (PsiTotal - fvella); //For_VMC_calculations
+        fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld()); //For_VMC_calculations
     if(i_VMC == 0)
-        fdif = 2.0 * (PsiTotal - fvella) + QQ; //SVMC and DMC, QQ because of drift jump
+        fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld()) + QQ; //SVMC and DMC, QQ because of drift jump
 
     accepta = 1;
     if(ntemps > 1)

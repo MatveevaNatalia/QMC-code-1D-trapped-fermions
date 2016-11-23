@@ -30,6 +30,7 @@ struct ParamModel{
         alfa = parametersMap.at("alfa");
         num_walk = parametersMap.at("num_walk");
         Lmax = parametersMap.at("num_walk");
+        seed = parametersMap.at("seed");
     }
 
 };

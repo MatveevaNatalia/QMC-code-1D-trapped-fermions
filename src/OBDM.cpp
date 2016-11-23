@@ -89,12 +89,12 @@ OBDM::~OBDM(){
 }
 
 
-void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, double Psi_old, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param)
+void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFunction & wave_func, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param)
 {
     double x1m, x1ax, r1ax; 
     double Psi_MC = 0.0;
     double quoc, prod;
-    int ipmac, idr;
+    int ipmac, idr, num_MC = 0;
     double xi, xj, Lmax, Lmax_ro;
 
     int sign_old = 1, sign_MC;
@@ -125,14 +125,17 @@ void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, double
     {
         sign_MC = 1;
 
+        //The coefficients here are the optimized ones
+        //for the algorithm
+
         x1m = -5.0*Lmax + 10.0*ran2(&(param_model.seed)) * Lmax;
         ipmac = int(ran2(&(param_model.seed)) * np);
 
-        x1ax = x1m - xaux.GetParticleComp(0, ipmac);
+        x1ax = x1m - xaux.GetParticleComp(num_MC, ipmac);
 
         r1ax = fabs(x1ax);
 
-        WaveFunction_MC(param_model, xaux, Psi_MC, ipmac, x1m, 0);
+        Psi_MC = wave_func.WaveFunction_MC(param_model, xaux, ipmac, x1m, num_MC);
 
         for(int alpha = 0; alpha < nc; alpha++)
         {
@@ -152,7 +155,7 @@ void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, double
             }
         }
 
-        quoc = exp(Psi_MC - Psi_old)*sign_MC/sign_old;
+        quoc = exp(Psi_MC - wave_func.GetMetrop())*sign_MC/sign_old;
 
         if(r1ax < Lmax_ro)
         {

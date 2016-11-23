@@ -4,6 +4,7 @@
 #include "qmc.h"
 #include "Locals.h"
 #include "MomDistr.h"
+#include "Wave_fun.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -37,7 +38,7 @@ public:
 
     void PrintDistr(const string& name_file);
 
-    void OBDM_Calc( ParamModel& param_model, const Configuration& xaux, double Psi_old, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param);
+    void OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFunction & wave_func, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param);
 
     ~OBDM();
 };

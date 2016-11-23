@@ -12,7 +12,6 @@
 #include <time.h>
 
 #include "Locals.h"
-//#include "metrop.h"
 #include "Algorithm.h"
 #include "Energy.h"
 #include "g2D.h"
@@ -35,33 +34,28 @@ void run (const string & inFile, const string & startingConfig, const string & o
 {
     Energy eav, epar, emean, enew, eold, emtnew;
     double ewalk;
-    long  kkk = -2175;
-    double PsiTotal, fnew, fvella;
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
     double accrate;
 
-
     int in, io, ii, jpop, nsons, npopmean;
-    int nblck, niter, init, icrit;
-    int i_VMC, i_Drift = 0, i_FNDMC, i_OBDM;
+    int nblck, niter, init, nwalk_mean;
+    int i_VMC, i_Drift, i_FNDMC, i_OBDM;
 
     map<string, double> paramMap;
 
     paramMap = FillMap(inFile, outDir);
 
     i_VMC   = paramMap["i_VMC"];
+    i_Drift = paramMap["i_Drift"];
     i_FNDMC = paramMap["i_FNDMC"];
     niter = paramMap["niter"];
     nblck = paramMap["nblck"];
     init = paramMap["init"];
     nwrite = paramMap["nwrite"];
-    icrit = paramMap["icrit"];
+    nwalk_mean = paramMap["icrit"];
     i_OBDM = paramMap["i_OBDM"];
 
-
-
     ParamModel param_model(paramMap);
-    param_model.seed = kkk;
 
     CorFunParam pair_distr_param(paramMap["Lmax_gr"], paramMap["mgr_g(r)"]);
     CorFunParam obdm_param(paramMap["Lmax_OBDM"], paramMap["mgr_OBDM"]);
@@ -72,7 +66,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
     Locals force(param_model);
 
     Energy **elocal;
-    double **flocal;
+
+    WaveFunction wave_func;
 
     DistributionR pair_distr(pair_distr_param);
     DistributionR pair_distr_cross(pair_distr_param);
@@ -89,9 +84,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
     kr = new double[numks_temp];
 
     int ngr;
-
-    flocal = new double*[dmnpop];
-    for(int i = 0; i < dmnpop; i++) flocal[i] = new double[2];
 
     elocal = new Energy*[dmnpop];
     for(int i = 0; i < dmnpop; i++) elocal[i] = new Energy[2];
@@ -152,7 +144,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                 coordinates.GaussianJump(ntemps, i_VMC, ipop, force);
 
-                PsiTotal = WaveFunction(param_model, coordinates);
+                wave_func.Calc(param_model, coordinates);
 
                 Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
 
@@ -160,7 +152,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 if(i_Drift == 0)
                 {
                      // This function is ugly, too many parameters ...
-                     MetropolisDif(ipop, param_model, PsiTotal, flocal, coordinates, force, accepta, nprova, fvella, ntemps, in, i_VMC);
+                     MetropolisDif(ipop, param_model, wave_func, coordinates, force, accepta, nprova, ntemps, in, i_VMC);
                 }
                 if(i_Drift == 1)
                 {
@@ -171,7 +163,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 {
                     if(ntemps > 1) nacc = nacc + 1;
 
-                    fnew = PsiTotal; // Accept method of WaveFunction
+                    wave_func.Accept();
 
                     enew.tot = emtnew.tot; //Accept method of Energy
                     enew.kin = emtnew.kin;
@@ -189,12 +181,13 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     dens_distr.DensityFirst(coordinates.auxil, param_model);
 
                     if(i_OBDM == 1)
-                        obdm.OBDM_Calc( param_model, coordinates.auxil, PsiTotal, moment_distr, mom_distr_param);
+                        obdm.OBDM_Calc(param_model, coordinates.auxil, wave_func, moment_distr, mom_distr_param);
 
                 }
                 else
                 {
-                    fnew = fvella; // NotAccept method of WaveFunction
+
+                    wave_func.NotAccept();
 
                     enew.tot = eold.tot; // NotAccept method of energy
                     enew.tot = eold.tot;
@@ -212,7 +205,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 }
 
                 if (i_FNDMC == 1)               
-                    BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, icrit, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
+                    BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
 
 
                 else {nsons = 1;}
@@ -233,12 +226,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
                         elocal[jpop][io].kin = enew.kin;
                         elocal[jpop][io].pot = enew.pot;
 
-                        flocal[jpop][io] = fnew;
+                        wave_func.WalkerMatch(jpop, io);
 
                         coordinates.WalkerMatch();
                         force.WalkerMatch();
-
-
 
                         pair_distr.WalkerMatch(jpop, io);
                         pair_distr_cross.WalkerMatch(jpop, io);
@@ -269,9 +260,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
             ii = in;
             in = io;
             io = ii;
-
-            //newPage should become oldPage
-            // and than newPage should be cleared
 
             coordinates.PageSwap();
             force.PageSwap();
@@ -343,12 +331,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
         obdm.Normalization();
         obdm.PrintDistr(outDir + "/fr.dat");
 
-
-        //	double n0 =  dnkup[0]*np/float(nkuppt);
-        //	double n0_22 =  dnkup_22[0]*np/float(nkuppt);
-
-
-
         moment_distr.Normalization(param_model.num_part, nkuppt);
         moment_distr.PrintDistr(outDir + "/nk.dat");
 
@@ -363,7 +345,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
             for(int ic = 0; ic < param_model.num_comp; ic++)
             {
                 for(int ip = 0; ip < param_model.num_part; ip++ )
-                   // {outfile2<<coordinates.total[ic][ip][i][in]<<"\n"; }
+
                     {outfile2<<coordinates.oldPage[i].GetParticleComp(ic,ip)<<"\n"; }
             }
         }
@@ -417,10 +399,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
         Normalization(outDir + "/nr_av.dat", outDir + "/nr_av_norm.dat", dens_distr_param.num_points, param_model.num_part, param_model.num_comp);
 
     }
-
-    for(int i = 0; i < dmnpop; i++)
-        delete [] flocal[i];
-    delete [] flocal;
 
     for(int i = 0; i < dmnpop; i++)
         delete [] elocal[i];

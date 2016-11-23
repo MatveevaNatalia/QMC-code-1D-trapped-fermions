@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class Configuration { // Class State
+class Configuration {
     vector<vector<double>> components;
 public:
 

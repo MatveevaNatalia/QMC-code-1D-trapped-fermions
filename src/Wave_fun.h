@@ -5,7 +5,48 @@
 #include "Locals.h"
 
 using namespace std;
-double WaveFunction(const ParamModel&, Locals&);
-double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, double& Psi_MC, int ipmac, double xm, int ncomp_MC);
+
+class WaveFunction{
+private:
+    double fmetrop, fnew, fold;
+public:
+    double **flocal;
+    WaveFunction();
+    double GetOld(){
+        return fold;
+    }
+    double GetMetrop(){
+        return fmetrop;
+    }
+    void Calc(const ParamModel& param_model, Locals& coordinates);
+    void Accept(){
+        fnew = fmetrop;
+    }
+    void NotAccept(){
+        fnew = fold;
+    }
+    void WalkerMatch(int jpop, int io){
+        flocal[jpop][io] = fnew;
+    }
+    void SetOldZero(){
+        fold = 0.;
+    }
+    void SetOld(int ipop, int in){
+        fold = flocal[ipop][in];
+    }
+    double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC);
+    ~WaveFunction();
+};
+
+
+
+
+
+
+
+
+
+//double WaveFunction(const ParamModel&, Locals&);
+//double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC);
 
 #endif
