@@ -2,7 +2,7 @@
 #define LOCALS_H
 
 #include "qmc.h"
-#include "Energy.h"
+//#include "Energy.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -29,14 +29,14 @@ public:
     }
 
     void PrintConfig() const {
-        for (int i = 0; i < components.size(); i++)
-            for (int j = 0; j < components[i].size(); j++)
+        for (unsigned int i = 0; i < components.size(); i++)
+            for (unsigned int j = 0; j < components[i].size(); j++)
                 cout << components[i][j] << endl;
     }
 
     void SetZero(){
-       for (int i = 0; i < components.size(); i++)
-           for (int j = 0; j < components[i].size(); j++)
+       for (unsigned int i = 0; i < components.size(); i++)
+           for (unsigned int j = 0; j < components[i].size(); j++)
                components[i][j] = 0.;
     }
 };
@@ -75,14 +75,6 @@ public:
         newPage.push_back(config);
     }
 
-    //double GetOldCoord( int iWalk, int iComp, int iPart) {
-    //    return oldPage[iWalk].GetParticleComp(iComp, iPart);
-    //}
-
-    //double GetNewCoord( int iWalk, int iComp, int iPart) {
-    //    return newPage[iWalk].GetParticleComp(iComp, iPart);
-    //}
-
     void ReadInitial(const string & startingConfig);
     void GenerateInitial(const string & startingConfig);
     void GaussianJump(int ntemps, int i_VMC, int ipop, Locals& force);
@@ -93,7 +85,8 @@ public:
     void PageSwap();
     void PrintOld();
     void PrintNew();
-    void PrintAll(const string & startingConfig, Energy& energy, int in);
+    void PrintAll(const string & startingConfig, int in);
+
 };
 
 void Gauss1D(double * x, double alfa, long *kkk);

@@ -52,15 +52,9 @@ void MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, L
     }
 }
 
-
-//****************************************************************************//
-
-
-//BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
-
-void BranchingCalc(ParamModel& param_model, Energy& energy, int *nsons, int accepta, int ntemps,int nacc, int nprova)
-//void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, double dte, int nwa, double E, double enew, double eold, long *kkk, int npop)
+int BranchingCalc(ParamModel& param_model, Energy& energy, int accepta, int ntemps,int nacc, int nprova)
 {
+    int nsons;
     int nwalk_min, nwalk_max, nwalk_mean, nsaux, npop;
     double redu, ampi, accrate, rsons, dte, dteff;
     double energy_walk, enew, eold;
@@ -77,7 +71,7 @@ void BranchingCalc(ParamModel& param_model, Energy& energy, int *nsons, int acce
     eold = energy.GetOldEnergy();
 
     dte = param_model.alfa/4.0;
-    *nsons = 1;
+    nsons = 1;
 
     if(accepta == 1)
     {
@@ -89,29 +83,28 @@ void BranchingCalc(ParamModel& param_model, Energy& energy, int *nsons, int acce
             if(nwalk_mean > 1)
             {
                 rsons = exp(2.0*dteff * (energy_walk - 0.5 * (enew + eold)));
-                *nsons = int(rsons + ran2(&(param_model.seed)));
+                nsons = int(rsons + ran2(&(param_model.seed)));
             }
-            else {*nsons = 1;}
+            else {nsons = 1;}
 
             if(nsons > 0 && nwalk_mean != 1)
             {
                 if(npop > nwalk_max)
                 {
-                    nsaux = *nsons * redu + ran2(&(param_model.seed));
-                    *nsons = nsaux;
+                    nsaux = nsons * redu + ran2(&(param_model.seed));
+                    nsons = nsaux;
 
                 }
                 if(npop < nwalk_min)
                 {
-                    nsaux = *nsons * ampi + ran2(&(param_model.seed));
-                    *nsons = nsaux;
+                    nsaux = nsons * ampi + ran2(&(param_model.seed));
+                    nsons = nsaux;
                 }
             }
         }
     }
+return nsons;
 }
-
-//***************************************************************************//
 
 void Gauss1D(double * x, double alfa, long *kkk)
 {

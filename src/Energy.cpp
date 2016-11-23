@@ -57,7 +57,7 @@ void Energy::Average(){
     emean.pot = emean.pot + epar.pot;
 }
 
-void Energy::Print(int nwrite, int npopmean, const string & outDir){
+void Energy::Print(int nwrite, int npopmean, int ntemps, const string & outDir){
     fstream outfile(outDir + "/Energy.dat", fstream::out| ios::app );
     outfile<<setprecision(18);
     outfile<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<emean.kin/float(nwrite)<<" "<<emean.pot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
@@ -112,7 +112,7 @@ void Energy::Calc(Locals& coord, Configuration& FMT, const ParamModel& param_mod
             for(int i = 0; i < num_part; i++)
             {
                 if(i != k) {                    
-                    xi = xMT.GetParticleComp(gamma,i);
+                    xi = coord.metrop.GetParticleComp(gamma,i);
                     FJ1[gamma][k] +=  ForcePartial(xk, xi, scat_length_bos);
                 }
             }
@@ -159,7 +159,7 @@ void Energy::Calc(Locals& coord, Configuration& FMT, const ParamModel& param_mod
                 {
                     for(int i = 0; i < num_part; i++)
                     {                       
-                        xi = xMT.GetParticleComp(alpha, i);
+                        xi = coord.metrop.GetParticleComp(alpha, i);
                         Ekin_J2 += EnergyPartial(xk, xi, scat_length);
                     }
                 }

@@ -13,7 +13,7 @@ void PairDistribution_calc(double **xMT, double *graMT_11, double *graMT_22, dou
     int igr1, igr12;
     Lmax = dr*mgr;
 
-    for(int i = 0; i < np; i++) // PairDistribution::CalculateSelf
+    for(int i = 0; i < np; i++)
     {
         for(int j = i+1; j < np; j++)
         {
@@ -29,7 +29,7 @@ void PairDistribution_calc(double **xMT, double *graMT_11, double *graMT_22, dou
         }
     }
 
-    for(int icomp = 1; icomp < ncomp; icomp++) // PairDistribution::CalculateCross
+    for(int icomp = 1; icomp < ncomp; icomp++)
     {
         for(int i = 0; i < np; i++)
         {

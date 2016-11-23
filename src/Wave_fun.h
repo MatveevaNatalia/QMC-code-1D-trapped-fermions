@@ -38,15 +38,4 @@ public:
     ~WaveFunction();
 };
 
-
-
-
-
-
-
-
-
-//double WaveFunction(const ParamModel&, Locals&);
-//double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC);
-
 #endif

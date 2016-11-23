@@ -8,9 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
-
 using namespace std;
-
 
 class DistributionR{
     int num_points;
@@ -26,25 +24,18 @@ public:
     DistributionR(const CorFunParam& pair_distr);
 
     void SetZero();
-
     void SetZeroAx();
-
     void Accept();
 
     void NotAccept(int ipop, int in);
-
     void WalkerMatch(int jpop, int io);
-
     void WalkerCollect(int nsons);
-
     void NormalizationGR(int ngr, int ncomp, int np, double step);
     void NormalizationNR(int ngr, float step);
 
     void PairDistrFirst(const Configuration& xMT, const ParamModel& param_model);    
     void PairDistrCross(const Configuration& xMT, const ParamModel& param_model);
     void DensityFirst(const Configuration& xMT, const ParamModel& param_model);
-
-
     void PrintDistr(const string& name_file);
 
     ~DistributionR();

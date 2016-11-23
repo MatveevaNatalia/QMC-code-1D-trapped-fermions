@@ -28,17 +28,13 @@ using namespace std;
 
 void run (const string & inFile, const string & startingConfig, const string & outDir )
 {
-   // EnergyVector eav, epar, emean, enew, eold, emtnew;
-    //double ewalk;
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
     double accrate;
-
     int in, io, ii, jpop, nsons, npopmean;
     int nblck, niter, init;
     int i_VMC, i_Drift, i_FNDMC, i_OBDM;
 
     map<string, double> paramMap;
-
     paramMap = FillMap(inFile, outDir);
 
     i_VMC   = paramMap["i_VMC"];
@@ -48,11 +44,9 @@ void run (const string & inFile, const string & startingConfig, const string & o
     nblck = paramMap["nblck"];
     init = paramMap["init"];
     nwrite = paramMap["nwrite"];
-    //nwalk_mean = paramMap["icrit"];
     i_OBDM = paramMap["i_OBDM"];
 
     ParamModel param_model(paramMap);
-
     CorFunParam pair_distr_param(paramMap["Lmax_gr"], paramMap["mgr_g(r)"]);
     CorFunParam obdm_param(paramMap["Lmax_OBDM"], paramMap["mgr_OBDM"]);
     CorFunParam dens_distr_param(paramMap["Lmax_OBDM"], paramMap["mgr_dens"]);
@@ -62,38 +56,27 @@ void run (const string & inFile, const string & startingConfig, const string & o
     Locals force(param_model);
 
     Energy energy;
-
-   // EnergyVector **elocal;
-
     WaveFunction wave_func;
 
     DistributionR pair_distr(pair_distr_param);
     DistributionR pair_distr_cross(pair_distr_param);
     DistributionR dens_distr(dens_distr_param);
     OBDM obdm(obdm_param);
-
-    double nkuppt;
-
     MomentDistr moment_distr(mom_distr_param);
 
+    double nkuppt;
     double *kr;
 
     int numks_temp = mom_distr_param.num_points;
     kr = new double[numks_temp];
-
     int ngr;
-
-//    elocal = new EnergyVector*[dmnpop];
-//    for(int i = 0; i < dmnpop; i++) elocal[i] = new EnergyVector[2];
 
     if(init == 1)
         coordinates.ReadInitial(startingConfig);
     else
         coordinates.GenerateInitial(startingConfig);
 
-
     ntemps = 0;
-
     in = 0;
     io = 1;
 
@@ -119,7 +102,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
             ntemps = ntemps + 1;
 
-            //eav.SetZero();
             energy.SetZeroAverage();
 
             jpop = 0;
@@ -128,16 +110,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
             {
 
                 force.metrop.SetZero();
-
-                //emtnew.SetZero();
-
                 energy.SetZeroMetrop();
-
                 energy.SetOldConf(ipop,in);
-                //eold.tot = elocal[ipop][in].tot; // Energy::SetOldConf
-                //eold.kin = elocal[ipop][in].kin;
-                //eold.pot = elocal[ipop][in].pot;
-
 
                 pair_distr.SetZeroAx();
                 pair_distr_cross.SetZeroAx();
@@ -146,35 +120,22 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 moment_distr.SetZeroAx();
 
                 coordinates.GaussianJump(ntemps, i_VMC, ipop, force);
-
                 wave_func.Calc(param_model, coordinates);
-
-                //Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
                 energy.Calc(coordinates, force.metrop, param_model);
 
-                if(i_Drift == 0)
-                {
-                     // This function is ugly, too many parameters ...
+                if(i_Drift == 0)                                    
                      MetropolisDif(ipop, param_model, wave_func, coordinates, force, accepta, nprova, ntemps, in, i_VMC);
-                }
-                if(i_Drift == 1)
-                {
+
+                if(i_Drift == 1)                
                     accepta = 1;
-                }
 
                 if(accepta == 1)
                 {
                     if(ntemps > 1) nacc = nacc + 1;
 
                     wave_func.Accept();
-
                     energy.Accept();
-                    //enew.tot = emtnew.tot; //Accept method of Energy
-                    //enew.kin = emtnew.kin;
-                    //enew.pot = emtnew.pot;
-
                     coordinates.Accept();
-
                     force.Accept();
 
                     pair_distr.PairDistrFirst(coordinates.auxil, param_model);
@@ -183,21 +144,14 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                     if(i_OBDM == 1)
                         obdm.OBDM_Calc(param_model, coordinates.auxil, wave_func, moment_distr, mom_distr_param);
-
                 }
                 else
                 {
 
                     wave_func.NotAccept();
-
                     energy.NotAccept();
-                    //enew.tot = eold.tot; // NotAccept method of energy
-                    //enew.tot = eold.tot;
-                    //enew.tot = eold.tot;
-
                     coordinates.NotAccept(ipop);
                     force.NotAccept(ipop);
-
                     pair_distr.NotAccept(ipop, io);
                     pair_distr_cross.NotAccept(ipop, io);
                     dens_distr.NotAccept(ipop, io);
@@ -207,31 +161,20 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 }
 
                 if (i_FNDMC == 1)               
-                    //BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
-                    BranchingCalc(param_model, energy, &nsons, accepta, ntemps, nacc, nprova);
-
-
-                else {nsons = 1;}
+                    nsons = BranchingCalc(param_model, energy, accepta, ntemps, nacc, nprova);
+                else
+                    nsons = 1;
 
                 if(nsons > 0)
                 {
                     for(int js = 0; js < nsons; js++)
                     {
 
-                        if(jpop >= dmnpop)
-                        {
+                        if(jpop >= dmnpop)                       
                             cout <<"The population has grown too much!"<<"nsons="<<nsons<<"jpop="<<jpop<<"\n";
-                        }
-
-                        // Begining of WalkerMatch for Energy, Coordinate and WaveFunction
 
                         energy.WalkerMatch(jpop, io);
-                        //elocal[jpop][io].tot = enew.tot;
-                        //elocal[jpop][io].kin = enew.kin;
-                        //elocal[jpop][io].pot = enew.pot;
-
                         wave_func.WalkerMatch(jpop, io);
-
                         coordinates.WalkerMatch();
                         force.WalkerMatch();
 
@@ -246,7 +189,6 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 }
 
                 energy.WalkerCollect(nsons);
-                //eav.tot = eav.tot + enew.tot * nsons; // WalkerCollect for Energy
 
                 ngr = ngr + nsons;
 
@@ -269,60 +211,24 @@ void run (const string & inFile, const string & startingConfig, const string & o
             coordinates.PageSwap();
             force.PageSwap();
 
-            // Energy::Normalization
-
             energy.Normalization(param_model, jpop);
 
-//            ewalk = eav.tot/jpop;
-
-//            epar.tot = eav.tot /(jpop*param_model.num_comp*param_model.num_part);
-//            epar.kin = eav.kin/(jpop*param_model.num_comp*param_model.num_part);
-//            epar.pot = eav.pot/(jpop*param_model.num_comp*param_model.num_part);
-
-            // ...
-
             if(ntemps == 1)
-            {
-                //emean.SetZero();
+            {            
                 energy.SetZeroMean();
-
                 npopmean = 0;
                 nmean = 0;
             }
 
             nmean = nmean + 1;
-
-            // Energy::Average
-
             energy.Average();
-
-            //emean.tot = emean.tot + epar.tot;
-            //emean.kin = emean.kin + epar.kin;
-            //emean.pot = emean.pot + epar.pot;
-
-            // ...
 
             npopmean = npopmean + param_model.num_walk;
 
             if(nmean==nwrite)
-            {
-                //Energy::Print
-
-                energy.Print(nwrite, npopmean, outDir);
-
-                //fstream outfile(outDir + "/Energy.dat", fstream::out| ios::app );
-
-                //outfile<<setprecision(18);
-
-                //outfile<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<emean.kin/float(nwrite)<<" "<<emean.pot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
-                //cout<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
-
-                //outfile.close();
-
-                //emean.SetZero();
+            {        
+                energy.Print(nwrite, npopmean, ntemps, outDir);
                 energy.SetZeroMean();
-
-
                 nmean = 0;
                 npopmean = 0;
             }
@@ -343,34 +249,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
         moment_distr.Normalization(param_model.num_part, nkuppt);
         moment_distr.PrintDistr(outDir + "/nk.dat");
 
-        //***************************************************************************
-
-        coordinates.PrintAll(startingConfig,energy,in);
-
-
-/*        fstream outfile2(startingConfig, fstream::out ); //Coordinate::Print
-        outfile2<<param_model.num_walk<<"\n";
-        outfile2<<setprecision(18);
-        for(int i = 0; i < param_model.num_walk;i++)
-        {
-            outfile2<<elocal[i][in].tot<<"\n";
-            for(int ic = 0; ic < param_model.num_comp; ic++)
-            {
-                for(int ip = 0; ip < param_model.num_part; ip++ )
-
-                    {outfile2<<coordinates.oldPage[i].GetParticleComp(ic,ip)<<"\n"; }
-            }
-        }
-        outfile2.close();*/
+        coordinates.PrintAll(startingConfig, in);
 
         accrate = 100.0 * float(nacc)/float(nprova);
         PrintAcceptance(accrate, iblck, outDir);
-
     }
-
-//    for(int i = 0; i < dmnpop; i++)
-//        delete [] elocal[i];
-//    delete [] elocal;
-
     delete [] kr;
 }

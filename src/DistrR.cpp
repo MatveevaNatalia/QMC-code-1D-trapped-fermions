@@ -1,6 +1,4 @@
 #include "DistrR.h"
-
-
 using namespace std;
 
 DistributionR::DistributionR(const CorFunParam& pair_distr){
@@ -47,10 +45,8 @@ void DistributionR::WalkerCollect(int nsons){
 }
 
 void DistributionR::NormalizationGR(int ngr, int ncomp, int np, double step){
-    double r1;
     for (int ir = 1; ir < (num_points+1); ir++)
-    {
-        r1 = float(ir) * step;
+    {       
         if (ngr > 0)
             dr[ir] = dr[ir]/float(ngr);
         else
@@ -59,11 +55,9 @@ void DistributionR::NormalizationGR(int ngr, int ncomp, int np, double step){
     }
 }
 
-void DistributionR::NormalizationNR(int ngr, float step){
-    double r1;
+void DistributionR::NormalizationNR(int ngr, float step){    
     for (int ir = 1; ir < (num_points+1); ir++)
-    {
-        r1 = float(ir) * step;
+    {       
         if (ngr > 0)
             dr[ir] = dr[ir]/float(ngr);
         else

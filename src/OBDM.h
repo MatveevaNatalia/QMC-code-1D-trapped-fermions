@@ -25,19 +25,12 @@ public:
     OBDM(const CorFunParam& obdm);
 
     void SetZero();
-
     void SetZeroAx();
-
     void NotAccept(int ipop);
-
     void WalkerMatch(int jpop);
-
     void WalkerCollect(int nsons);
-
     void Normalization();
-
     void PrintDistr(const string& name_file);
-
     void OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFunction & wave_func, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param);
 
     ~OBDM();

@@ -39,6 +39,4 @@ public:
     ~MomentDistr();
 };
 
-
-
 #endif // MOMDISTR_H

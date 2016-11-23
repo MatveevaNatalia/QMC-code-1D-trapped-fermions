@@ -91,16 +91,14 @@ void Locals::Accept(){
 
 void Locals::NotAccept(int ipop){
     auxil = oldPage[ipop];
-
 }
 
 void Locals::WalkerMatch(){
-//    newPage[jpop] = auxil;
     newPage.push_back(auxil);
 }
 
  void Locals::SetZero(){
-    for (int i = 0; i < oldPage.size(); i++)
+    for (unsigned int i = 0; i < oldPage.size(); i++)
         oldPage[i].SetZero();
  }
 
@@ -110,23 +108,21 @@ void Locals::WalkerMatch(){
  }
 
 void Locals::PrintOld(){
-    for (int i = 0; i < oldPage.size(); i++)
+    for (unsigned int i = 0; i < oldPage.size(); i++)
         oldPage[i].PrintConfig();
 }
 
 void Locals::PrintNew(){
-    for (int i = 0; i < newPage.size(); i++)
+    for (unsigned int i = 0; i < newPage.size(); i++)
         newPage[i].PrintConfig();
 }
 
-void Locals::PrintAll(const string & startingConfig, Energy& energy, int in){
-    fstream outfile(startingConfig, fstream::out ); //Coordinate::Print
+void Locals::PrintAll(const string & startingConfig, int in){
+    fstream outfile(startingConfig, fstream::out );
     outfile<<num_walk<<"\n";
     outfile<<setprecision(18);
     for(int i = 0; i < num_walk;i++)
     {
-        double energy_local = energy.GetTotalEnergy(i, in);
-        outfile<<energy_local<<"\n";
         for(int ic = 0; ic < num_comp; ic++)
         {
             for(int ip = 0; ip < num_part; ip++ )

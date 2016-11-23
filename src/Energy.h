@@ -50,9 +50,7 @@ public:
     }
     void Normalization(const ParamModel& param_model, int jpop);
     void Average();
-    void Print(int nwrite, int npopmean, const string & outDir);
-
-
+    void Print(int nwrite, int npopmean, int ntemps, const string & outDir);
 
 };
 
