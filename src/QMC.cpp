@@ -26,19 +26,15 @@
 
 using namespace std;
 
-void Energy::SetZero(){
-    tot = 0; pot = 0; kin = 0;
-};
-
 void run (const string & inFile, const string & startingConfig, const string & outDir )
 {
-    Energy eav, epar, emean, enew, eold, emtnew;
-    double ewalk;
+   // EnergyVector eav, epar, emean, enew, eold, emtnew;
+    //double ewalk;
     int ntemps, accepta, nacc, nprova, nwrite, nmean;
     double accrate;
 
     int in, io, ii, jpop, nsons, npopmean;
-    int nblck, niter, init, nwalk_mean;
+    int nblck, niter, init;
     int i_VMC, i_Drift, i_FNDMC, i_OBDM;
 
     map<string, double> paramMap;
@@ -52,7 +48,7 @@ void run (const string & inFile, const string & startingConfig, const string & o
     nblck = paramMap["nblck"];
     init = paramMap["init"];
     nwrite = paramMap["nwrite"];
-    nwalk_mean = paramMap["icrit"];
+    //nwalk_mean = paramMap["icrit"];
     i_OBDM = paramMap["i_OBDM"];
 
     ParamModel param_model(paramMap);
@@ -65,7 +61,9 @@ void run (const string & inFile, const string & startingConfig, const string & o
     Locals coordinates(param_model);
     Locals force(param_model);
 
-    Energy **elocal;
+    Energy energy;
+
+   // EnergyVector **elocal;
 
     WaveFunction wave_func;
 
@@ -85,8 +83,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
     int ngr;
 
-    elocal = new Energy*[dmnpop];
-    for(int i = 0; i < dmnpop; i++) elocal[i] = new Energy[2];
+//    elocal = new EnergyVector*[dmnpop];
+//    for(int i = 0; i < dmnpop; i++) elocal[i] = new EnergyVector[2];
 
     if(init == 1)
         coordinates.ReadInitial(startingConfig);
@@ -121,7 +119,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
             ntemps = ntemps + 1;
 
-            eav.SetZero();
+            //eav.SetZero();
+            energy.SetZeroAverage();
 
             jpop = 0;
 
@@ -130,11 +129,15 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                 force.metrop.SetZero();
 
-                emtnew.SetZero();
+                //emtnew.SetZero();
 
-                eold.tot = elocal[ipop][in].tot; // Energy::SetOldConf
-                eold.kin = elocal[ipop][in].kin;
-                eold.pot = elocal[ipop][in].pot;
+                energy.SetZeroMetrop();
+
+                energy.SetOldConf(ipop,in);
+                //eold.tot = elocal[ipop][in].tot; // Energy::SetOldConf
+                //eold.kin = elocal[ipop][in].kin;
+                //eold.pot = elocal[ipop][in].pot;
+
 
                 pair_distr.SetZeroAx();
                 pair_distr_cross.SetZeroAx();
@@ -146,8 +149,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                 wave_func.Calc(param_model, coordinates);
 
-                Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
-
+                //Energy_calc(coordinates.metrop, force.metrop, emtnew, param_model);
+                energy.Calc(coordinates, force.metrop, param_model);
 
                 if(i_Drift == 0)
                 {
@@ -165,17 +168,15 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                     wave_func.Accept();
 
-                    enew.tot = emtnew.tot; //Accept method of Energy
-                    enew.kin = emtnew.kin;
-                    enew.pot = emtnew.pot;
+                    energy.Accept();
+                    //enew.tot = emtnew.tot; //Accept method of Energy
+                    //enew.kin = emtnew.kin;
+                    //enew.pot = emtnew.pot;
 
                     coordinates.Accept();
 
                     force.Accept();
 
-                    // this will be converted to virtual call to "ObserveAuxilaryState" in
-                    // coordinates.ObserveAuxilaryState(pair_distr, param_model);
-                    // coordinates.ObserveAuxilaryState(pair_distr_cross, param_model);
                     pair_distr.PairDistrFirst(coordinates.auxil, param_model);
                     pair_distr_cross.PairDistrCross(coordinates.auxil, param_model);
                     dens_distr.DensityFirst(coordinates.auxil, param_model);
@@ -189,9 +190,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                     wave_func.NotAccept();
 
-                    enew.tot = eold.tot; // NotAccept method of energy
-                    enew.tot = eold.tot;
-                    enew.tot = eold.tot;
+                    energy.NotAccept();
+                    //enew.tot = eold.tot; // NotAccept method of energy
+                    //enew.tot = eold.tot;
+                    //enew.tot = eold.tot;
 
                     coordinates.NotAccept(ipop);
                     force.NotAccept(ipop);
@@ -205,7 +207,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
                 }
 
                 if (i_FNDMC == 1)               
-                    BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
+                    //BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
+                    BranchingCalc(param_model, energy, &nsons, accepta, ntemps, nacc, nprova);
 
 
                 else {nsons = 1;}
@@ -222,9 +225,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
                         // Begining of WalkerMatch for Energy, Coordinate and WaveFunction
 
-                        elocal[jpop][io].tot = enew.tot;
-                        elocal[jpop][io].kin = enew.kin;
-                        elocal[jpop][io].pot = enew.pot;
+                        energy.WalkerMatch(jpop, io);
+                        //elocal[jpop][io].tot = enew.tot;
+                        //elocal[jpop][io].kin = enew.kin;
+                        //elocal[jpop][io].pot = enew.pot;
 
                         wave_func.WalkerMatch(jpop, io);
 
@@ -241,7 +245,8 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     }
                 }
 
-                eav.tot = eav.tot + enew.tot * nsons; // WalkerCollect for Energy
+                energy.WalkerCollect(nsons);
+                //eav.tot = eav.tot + enew.tot * nsons; // WalkerCollect for Energy
 
                 ngr = ngr + nsons;
 
@@ -266,17 +271,20 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
             // Energy::Normalization
 
-            ewalk = eav.tot/jpop;
+            energy.Normalization(param_model, jpop);
 
-            epar.tot = eav.tot /(jpop*param_model.num_comp*param_model.num_part);
-            epar.kin = eav.kin/(jpop*param_model.num_comp*param_model.num_part);
-            epar.pot = eav.pot/(jpop*param_model.num_comp*param_model.num_part);
+//            ewalk = eav.tot/jpop;
+
+//            epar.tot = eav.tot /(jpop*param_model.num_comp*param_model.num_part);
+//            epar.kin = eav.kin/(jpop*param_model.num_comp*param_model.num_part);
+//            epar.pot = eav.pot/(jpop*param_model.num_comp*param_model.num_part);
 
             // ...
 
             if(ntemps == 1)
             {
-                emean.SetZero();
+                //emean.SetZero();
+                energy.SetZeroMean();
 
                 npopmean = 0;
                 nmean = 0;
@@ -286,9 +294,11 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
             // Energy::Average
 
-            emean.tot = emean.tot + epar.tot;
-            emean.kin = emean.kin + epar.kin;
-            emean.pot = emean.pot + epar.pot;
+            energy.Average();
+
+            //emean.tot = emean.tot + epar.tot;
+            //emean.kin = emean.kin + epar.kin;
+            //emean.pot = emean.pot + epar.pot;
 
             // ...
 
@@ -298,29 +308,28 @@ void run (const string & inFile, const string & startingConfig, const string & o
             {
                 //Energy::Print
 
-                fstream outfile(outDir + "/Energy.dat", fstream::out| ios::app );
+                energy.Print(nwrite, npopmean, outDir);
 
-                outfile<<setprecision(18);
+                //fstream outfile(outDir + "/Energy.dat", fstream::out| ios::app );
 
-                outfile<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<emean.kin/float(nwrite)<<" "<<emean.pot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
-                cout<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
+                //outfile<<setprecision(18);
 
-                outfile.close();
+                //outfile<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<emean.kin/float(nwrite)<<" "<<emean.pot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
+                //cout<< ntemps/nwrite <<" "<<emean.tot/float(nwrite)<<" "<<float(npopmean)/float(nwrite)<<"\n";
 
-                emean.SetZero();
+                //outfile.close();
+
+                //emean.SetZero();
+                energy.SetZeroMean();
+
 
                 nmean = 0;
                 npopmean = 0;
             }
         }
-        //********************************************************************************************
-
-
 
         pair_distr.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
         pair_distr_cross.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
-
-        // It should be CorFun::Print
 
         pair_distr.PrintDistr( outDir + "/gr.dat");
         pair_distr_cross.PrintDistr(outDir + "/gr_12.dat");
@@ -336,7 +345,10 @@ void run (const string & inFile, const string & startingConfig, const string & o
 
         //***************************************************************************
 
-        fstream outfile2(startingConfig, fstream::out ); //Coordinate::Print
+        coordinates.PrintAll(startingConfig,energy,in);
+
+
+/*        fstream outfile2(startingConfig, fstream::out ); //Coordinate::Print
         outfile2<<param_model.num_walk<<"\n";
         outfile2<<setprecision(18);
         for(int i = 0; i < param_model.num_walk;i++)
@@ -349,60 +361,16 @@ void run (const string & inFile, const string & startingConfig, const string & o
                     {outfile2<<coordinates.oldPage[i].GetParticleComp(ic,ip)<<"\n"; }
             }
         }
-        outfile2.close();
+        outfile2.close();*/
 
         accrate = 100.0 * float(nacc)/float(nprova);
-        fstream outfile1(outDir + "/Accept.dat", fstream::out| ios::app );
-        outfile1<< iblck <<" "<<accrate<<"\n";
-        outfile1.close();
-
-        //*************************************************************** //
-        //  Here we take the average of all observables after each block *
-        //**************************************************************//
-
-        int n_notused,  nfull, ncol, nel;
-
-        // Parameters for the average of the energy//
-
-        ncol = 4;
-        n_notused = 0;
-        //cout<<"n_notused= "<<n_notused<<"\n";
-        nel = 1; // number of outputs for one block of statistics
-        nfull = 0;
-
-        Stat_Energy(outDir + "/Energy.dat", outDir + "/Energy_av.dat", outDir + "/Energy_full.dat", ncol, nel, n_notused,  nfull);
-
-        //  Parameters for correlation functions
-        //  (files "nr.dat", "mom_distr.dat", "fr.dat", "g2D.dat" )
-        int nel_cor, ncol_cor,  n_notused_cor;
-
-        nel_cor = 1; // number of elements per block for statistics
-        n_notused_cor = 1;
-
-        ncol_cor = 1; // number of columns for 'mom_dist.dat'
-        statistics_cor(outDir + "/nk.dat", outDir + "/nk_av.dat", mom_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
-
-        ncol_cor = 1; //number of columns for 'gr.dat'
-        statistics_cor(outDir + "/gr.dat", outDir + "/gr_av.dat", pair_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
-
-        ncol_cor = 1; //number of columns for 'gr.dat'
-        statistics_cor(outDir + "/gr_12.dat", outDir + "/gr_12_av.dat", pair_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
-
-        ncol_cor = 1; //number of columns for 'fr.dat'
-        statistics_cor(outDir + "/fr.dat", outDir + "/fr_av.dat", obdm_param.num_points, ncol_cor, n_notused_cor, nel_cor);
-
-        ncol_cor = 1; //number of columns for 'nr.dat'
-        statistics_cor(outDir + "/nr.dat", outDir + "/nr_av.dat", dens_distr_param.num_points, ncol_cor, n_notused_cor, nel_cor);
-
-
-        Normalization(outDir + "/nk_av.dat", outDir + "/nk_av_norm.dat", mom_distr_param.num_points, param_model.num_part, param_model.num_comp);
-        Normalization(outDir + "/nr_av.dat", outDir + "/nr_av_norm.dat", dens_distr_param.num_points, param_model.num_part, param_model.num_comp);
+        PrintAcceptance(accrate, iblck, outDir);
 
     }
 
-    for(int i = 0; i < dmnpop; i++)
-        delete [] elocal[i];
-    delete [] elocal;
+//    for(int i = 0; i < dmnpop; i++)
+//        delete [] elocal[i];
+//    delete [] elocal;
 
     delete [] kr;
 }

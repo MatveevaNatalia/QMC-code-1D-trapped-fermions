@@ -119,8 +119,23 @@ void Locals::PrintNew(){
         newPage[i].PrintConfig();
 }
 
+void Locals::PrintAll(const string & startingConfig, Energy& energy, int in){
+    fstream outfile(startingConfig, fstream::out ); //Coordinate::Print
+    outfile<<num_walk<<"\n";
+    outfile<<setprecision(18);
+    for(int i = 0; i < num_walk;i++)
+    {
+        double energy_local = energy.GetTotalEnergy(i, in);
+        outfile<<energy_local<<"\n";
+        for(int ic = 0; ic < num_comp; ic++)
+        {
+            for(int ip = 0; ip < num_part; ip++ )
 
-
+                {outfile<<oldPage[i].GetParticleComp(ic,ip)<<"\n"; }
+        }
+    }
+    outfile.close();
+}
 
 
 

@@ -11,8 +11,7 @@ const int dmnpop = 300;
 const double pi = 3.141592653589793;
 
 struct ParamModel{
-//public:
-    int num_comp, num_part, num_walk;
+    int num_comp, num_part, num_walk, nwalk_mean;
     long seed;
     double scat_lenght, scat_lenght_bos, width, alfa, Lmax;
 
@@ -31,11 +30,10 @@ struct ParamModel{
         num_walk = parametersMap.at("num_walk");
         Lmax = parametersMap.at("num_walk");
         seed = parametersMap.at("seed");
+        nwalk_mean = parametersMap.at("nwalk_mean");
     }
 
 };
-
-
 
 
 struct CorFunParam{
@@ -48,15 +46,6 @@ struct CorFunParam{
     }
 
 };
-
-
-class Energy
-{
-public:
-    double tot, pot, kin;
-    void SetZero();
-};
-
 
 void run (const string & inFile, const string & startingConfig, const string & outDir );
 

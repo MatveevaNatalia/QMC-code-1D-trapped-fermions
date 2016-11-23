@@ -2,6 +2,7 @@
 #define LOCALS_H
 
 #include "qmc.h"
+#include "Energy.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -51,7 +52,6 @@ public:
     vector<Configuration> newPage; // index io
     Configuration auxil, metrop;
 
-
     Locals(ParamModel& param):
         auxil(param.num_comp, param.num_part),
         metrop(param.num_comp, param.num_part),
@@ -93,112 +93,10 @@ public:
     void PageSwap();
     void PrintOld();
     void PrintNew();
+    void PrintAll(const string & startingConfig, Energy& energy, int in);
 };
 
 void Gauss1D(double * x, double alfa, long *kkk);
 float ran2(long *idum);
-
-
-
-
-
-
-
-
-/*class Configuration {
-    vector<vector<double>> components;
-public:
-    double GetParticleComp(int npart, int nComp) {
-        return components[npart][nComp];
-    }
-};
-
-class Locals{
-private:
-    int num_comp, num_part, num_walk;
-    long seed;
-    double alfa, step_jump;
-public:
-
-    Configuration auxil, metrop;
-    vector<Configuration> oldPage; // index in
-    vector<Configuration> newPage; // index io
-
-    //double ****total, **auxil, **metrop;
-
-
-    Locals(ParamModel param_model);
-    void ReadInitial(const string & startingConfig);
-
-    void GenerateInitial();
-
-   // void GaussianJump(int ntemps, int in, int i_VMC, int ipop, double ****FF);
-
-    GaussianJump(int ntemps, int in, int i_VMC, int ipop, Locals& force);
-
-    void Accept();
-
-    void NotAccept(int ipop, int in);
-
-    void WalkerMatch(int jpop, int io);
-
-    void SetZeroForceTotal(int in);
-
-    void SetZeroForce();
-
-//    void PrintConfig(const string& name_file, double** elocal_tot, int in);
-
-
-    ~Locals();
-
-};*/
-
-
-
-
-
-
-
-
-
-
-/*class Locals{
-private:
-    int num_comp_saved, num_part_saved, num_walk_saved;
-    long seed_saved;
-    double alfa_saved, step_jump;
-public:
-//    Configuration auxil, metrop;
-//    vector<Configuration> oldPage;
-//    vector<Configuration> newPage;
-
-    double ****total, **auxil, **metrop;
-
-
-    Locals(ParamModel param_model);
-    void ReadInitial(const string & startingConfig);
-
-    void GenerateInitial();
-
-    void GaussianJump(int ntemps, int in, int i_VMC, int ipop, double ****FF);
-
-    //GaussianJump(int ntemps, int in, int i_VMC, int ipop, Locals& force);
-    // { force.oldPage[5].components}
-    void Accept();
-
-    void NotAccept(int ipop, int in);
-
-    void WalkerMatch(int jpop, int io);
-
-    void SetZeroForceTotal(int in);
-
-    void SetZeroForce();
-
-//    void PrintConfig(const string& name_file, double** elocal_tot, int in);
-
-
-    ~Locals();
-
-};*/
 
 #endif // LOCALS_H

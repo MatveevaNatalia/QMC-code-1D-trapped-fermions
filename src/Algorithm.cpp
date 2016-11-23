@@ -56,15 +56,27 @@ void MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, L
 //****************************************************************************//
 
 
-void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, double dte, int icrit, double E, double enew, double eold, long *kkk, int npop)
-{
-    int icrmin, icrmax, nsaux;
-    double redu, ampi, accrate, rsons, dteff;
-    icrmin = icrit - icrit/10.;
-    icrmax = icrit + icrit/10.;
-    redu = 0.5 * float ( icrmin + icrmax ) / float ( icrmax );
-    ampi = 0.5 * float ( icrmin + icrmax ) / float ( icrmin );
+//BranchingCalc(&nsons, accepta, ntemps, nacc, nprova, param_model.alfa/4.0, nwalk_mean, ewalk, enew.tot, eold.tot, &param_model.seed, param_model.num_walk);
 
+void BranchingCalc(ParamModel& param_model, Energy& energy, int *nsons, int accepta, int ntemps,int nacc, int nprova)
+//void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, double dte, int nwa, double E, double enew, double eold, long *kkk, int npop)
+{
+    int nwalk_min, nwalk_max, nwalk_mean, nsaux, npop;
+    double redu, ampi, accrate, rsons, dte, dteff;
+    double energy_walk, enew, eold;
+
+    npop = param_model.num_walk;
+    nwalk_mean = param_model.nwalk_mean;
+    nwalk_min = nwalk_mean - nwalk_mean/10.;
+    nwalk_max = nwalk_mean + nwalk_mean/10.;
+    redu = 0.5 * float ( nwalk_min + nwalk_max ) / float ( nwalk_max );
+    ampi = 0.5 * float ( nwalk_min + nwalk_max ) / float ( nwalk_min );
+
+    energy_walk = energy.GetWalkerEnergy();
+    enew = energy.GetNewEnergy();
+    eold = energy.GetOldEnergy();
+
+    dte = param_model.alfa/4.0;
     *nsons = 1;
 
     if(accepta == 1)
@@ -74,24 +86,24 @@ void BranchingCalc(int *nsons, int accepta, int ntemps,int nacc, int nprova, dou
             accrate = float(nacc)/float(nprova);
 
             dteff = dte * accrate;
-            if(icrit > 1)
+            if(nwalk_mean > 1)
             {
-                rsons = exp(2.0*dteff * (E - 0.5 * (enew + eold)));
-                *nsons = int(rsons + ran2(kkk));
+                rsons = exp(2.0*dteff * (energy_walk - 0.5 * (enew + eold)));
+                *nsons = int(rsons + ran2(&(param_model.seed)));
             }
             else {*nsons = 1;}
 
-            if(nsons > 0 && icrit != 1)
+            if(nsons > 0 && nwalk_mean != 1)
             {
-                if(npop > icrmax)
+                if(npop > nwalk_max)
                 {
-                    nsaux = *nsons * redu + ran2(kkk);
+                    nsaux = *nsons * redu + ran2(&(param_model.seed));
                     *nsons = nsaux;
 
                 }
-                if(npop < icrmin)
+                if(npop < nwalk_min)
                 {
-                    nsaux = *nsons * ampi + ran2(kkk);
+                    nsaux = *nsons * ampi + ran2(&(param_model.seed));
                     *nsons = nsaux;
                 }
             }
