@@ -1,18 +1,17 @@
 #include "Algorithm.h"
 using namespace std;
 
-void MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, Locals& coordinates, Locals& force, int& accepta, int& nprova, int ntemps, int in, int i_VMC)
+bool MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, Locals& coordinates, Locals& force, int& nprova, int ntemps, bool i_VMC)
 {
+    bool accept;
     double  fdif, QQ, DDF1, DDF2, DDS, dte = param_model.alfa/4;
     double force_old, force_new, x_old, x_new;
     if(ntemps == 1)
     {
-        wave_func.SetOldZero();
-        QQ = 0.0;
+        accept = true;
     }
     else
-    {        
-        wave_func.SetOld(ipop,in);
+    {
         QQ = 0.0;
         for(int inc = 0; inc < param_model.num_comp; inc++)
         {
@@ -30,29 +29,27 @@ void MetropolisDif(int ipop, ParamModel& param_model, WaveFunction& wave_func, L
                 QQ = QQ + 0.5 * DDF1 * (0.5 * dte * DDF2 - DDS);
             }
         }
-    }
+        if(i_VMC == 1)
+            fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld(ipop)); //For_VMC_calculations
+        if(i_VMC == 0)
+            fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld(ipop)) + QQ; //SVMC and DMC, QQ because of drift jump
 
-    if(i_VMC == 1)
-        fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld()); //For_VMC_calculations
-    if(i_VMC == 0)
-        fdif = 2.0 * (wave_func.GetMetrop() - wave_func.GetOld()) + QQ; //SVMC and DMC, QQ because of drift jump
-
-    accepta = 1;
-    if(ntemps > 1)
-    {
         nprova = nprova + 1;
+
         if (fdif >= 0)
-            accepta = 1;
+            accept = true;
         else
         {
-            accepta = 0;
+            accept = false;
             if(ran2(&(param_model.seed))< exp(fdif))
-                accepta = 1;
+                accept = true;
         }
+
     }
+    return accept;
 }
 
-int BranchingCalc(ParamModel& param_model, Energy& energy, int accepta, int ntemps,int nacc, int nprova)
+int BranchingCalc(ParamModel& param_model, Energy& energy, bool accept, int ntemps, int nacc, int nprova, int ipop)
 {
     int nsons;
     int nwalk_min, nwalk_max, nwalk_mean, nsaux, npop;
@@ -66,14 +63,15 @@ int BranchingCalc(ParamModel& param_model, Energy& energy, int accepta, int ntem
     redu = 0.5 * float ( nwalk_min + nwalk_max ) / float ( nwalk_max );
     ampi = 0.5 * float ( nwalk_min + nwalk_max ) / float ( nwalk_min );
 
-    energy_walk = energy.GetWalkerEnergy();
+    energy_walk = energy.GetAverageWalker(); // It is the mean energy per walker for oldPage
     enew = energy.GetNewEnergy();
-    eold = energy.GetOldEnergy();
+    eold = energy.GetOldEnergy(ipop);
 
     dte = param_model.alfa/4.0;
+
     nsons = 1;
 
-    if(accepta == 1)
+    if(accept)
     {
         if(ntemps > 1)
         {

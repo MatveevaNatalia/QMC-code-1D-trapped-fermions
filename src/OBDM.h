@@ -5,6 +5,7 @@
 #include "Locals.h"
 #include "MomDistr.h"
 #include "Wave_fun.h"
+#include "ConfigDistr.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -17,24 +18,22 @@ class OBDM{
 private:
     int num_points;
     double step;
-    void setzero(double * x){
-        for(int i = 0; i < num_points+1; i++) x[i] = 0;
-    }
+    ConfigDistr auxil, average;
+    ConfigDistr auxil_norm,  average_norm;
+    vector<ConfigDistr> oldPage, newPage;
+    vector<ConfigDistr> oldPage_norm, newPage_norm;
 public:
-    double *fr, *fra, *nfr, *nfra, **frlocal, **nfrlocal;
-    OBDM(const CorFunParam& obdm);
-
+    OBDM(const CorFunParam& );
     void SetZero();
     void SetZeroAx();
     void NotAccept(int ipop);
-    void WalkerMatch(int jpop);
+    void WalkerMatch();
     void WalkerCollect(int nsons);
     void Normalization();
     void PrintDistr(const string& name_file);
     void OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFunction & wave_func, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param);
+    void PageSwap();
 
-    ~OBDM();
 };
-
 
 #endif

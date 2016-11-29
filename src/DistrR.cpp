@@ -1,69 +1,58 @@
 #include "DistrR.h"
 using namespace std;
 
-DistributionR::DistributionR(const CorFunParam& pair_distr){
-    num_points = pair_distr.num_points;
-    step = pair_distr.step;
-    dr = new double[num_points+1];
-    dra = new double[num_points+1];
-    draMT = new double[num_points+1];
-
-    drlocal = new double**[num_points+1];
-    for(int i = 0; i < (num_points+1); i++){
-        drlocal[i] = new double*[dmnpop];
-        for(int j = 0; j < dmnpop; j++ ) drlocal[i][j] =  new double[2];
-    }
+DistributionR::DistributionR(const CorFunParam& param):
+    average(param.num_points),
+    auxil(param.num_points),   
+    oldPage(dmnpop, ConfigDistr(param.num_points))
+{
+    num_points = param.num_points;
+    step = param.step;
 }
 
 void DistributionR::SetZero(){
-    setzero(dr);
+    average.setzero();
 }
 
 void DistributionR::SetZeroAx(){
-    setzero(dra);
-    setzero(draMT);
+    auxil.setzero();
 }
 
-void DistributionR::Accept(){
-    for(int i = 1; i < (num_points+1); i++)
-        dra[i] = draMT[i];
+void DistributionR::NotAccept(int ipop){
+    auxil = oldPage[ipop];
 }
 
-void DistributionR::NotAccept(int ipop, int in){
-    for(int i = 1; i < (num_points+1); i++)
-        dra[i] = drlocal[i][ipop][in];
-}
-
-void DistributionR::WalkerMatch(int jpop, int io){
-    for(int i = 1; i < (num_points+1); i++)
-        drlocal[i][jpop][io] = dra[i];
+void DistributionR::WalkerMatch(){
+    newPage.push_back(auxil);
 }
 
 void DistributionR::WalkerCollect(int nsons){
     for(int i = 1; i < (num_points+1); i++)
-        dr[i] = dr[i] + nsons * dra[i];
+        average[i] += nsons * auxil[i];
 }
 
-void DistributionR::NormalizationGR(int ngr, int ncomp, int np, double step){
-    for (int ir = 1; ir < (num_points+1); ir++)
-    {       
-        if (ngr > 0)
-            dr[ir] = dr[ir]/float(ngr);
+void DistributionR::NormalizationGR(int nsons_total, const ParamModel& param){
+    double norm;
+    norm = param.num_comp * param.num_part * step;
+    for (int i = 1; i < (num_points+1); i++)
+    {
+        if (nsons_total > 0)
+            average[i] = average[i]/float(nsons_total);
         else
-            dr[ir] = 0.0;
-        dr[ir] = dr[ir]/(ncomp*np*step);
+            average[i] = 0.;
+        average[i] = average[i]/norm;
     }
 }
 
-void DistributionR::NormalizationNR(int ngr, float step){    
-    for (int ir = 1; ir < (num_points+1); ir++)
-    {       
-        if (ngr > 0)
-            dr[ir] = dr[ir]/float(ngr);
+void DistributionR::NormalizationNR(int nsons_total){
+    for (int i = 1; i < (num_points+1); i++)
+    {
+        if (nsons_total > 0)
+            average[i] = average[i]/float(nsons_total);
         else
-            dr[ir] = 0.0;
+            average[i] = 0.;
 
-        dr[ir] = dr[ir]/(2*step);
+        average[i] = average[i]/(2*step);
     }
 }
 
@@ -77,13 +66,11 @@ void DistributionR::PairDistrFirst(const Configuration& xMT, const ParamModel& p
     {
         for(int j = i+1; j < param_model.num_part; j++)
         {
-
             deltax = fabs(xMT.GetParticleComp(0,i) - xMT.GetParticleComp(0,j));
-
             if(deltax < Lmax)
             {
-                bin_number = deltax/step;
-                draMT[bin_number] += 1;
+                bin_number = deltax/step;               
+                auxil[bin_number] += 1;
             }
 
         }
@@ -102,12 +89,11 @@ void DistributionR::PairDistrCross(const Configuration& xMT, const ParamModel& p
         {
             for(int j = 0; j < param_model.num_part; j++)
             {
-
                 deltax = fabs(xMT.GetParticleComp(0,i) - xMT.GetParticleComp(icomp,j));
                 if(deltax < Lmax)
                 {
-                    bin_number = deltax/step;
-                    draMT[bin_number] += 1;
+                    bin_number = deltax/step;                   
+                    auxil[bin_number] += 1;
                 }
             }
         }
@@ -122,11 +108,11 @@ void DistributionR::DensityFirst(const Configuration& xMT, const ParamModel& par
 
     for(int i = 0; i < param_model.num_part; i++)
     {
-        x_modul = fabs(xMT.GetParticleComp(0,i));      
+        x_modul = fabs(xMT.GetParticleComp(0,i));
         if(x_modul < Lmax)
-        {            
-            bin_num = x_modul/step;
-            draMT[bin_num] += 1;
+        {
+            bin_num = x_modul/step;           
+            auxil[bin_num] += 1;
         }
     }
 }
@@ -138,20 +124,13 @@ void DistributionR::PrintDistr(const string& name_file)
     for(int i = 1; i < (num_points+1);i++)
     {
         coord_bin = float(i) * step + step/2.0;
-        outfile<<coord_bin<<" "<<dr[i]<<"\n";
+        outfile<<coord_bin<<" "<<average[i]<<"\n";
     }
     outfile.close();
 }
 
-DistributionR::~DistributionR(){
-    delete[] dra;
-    delete[] dr;
-    delete[] draMT;
-    for(int i = 0; i < (num_points+1); i++)
-    {
-        for (int j = 0; j < dmnpop; j++) delete [] drlocal[i][j];
-        delete [] drlocal[i];
-    }
-    delete [] drlocal;
-
+void DistributionR::PageSwap(){
+     oldPage = newPage;
+     newPage.clear();
 }
+

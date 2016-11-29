@@ -51,7 +51,7 @@ void Locals::GenerateInitial(const string & startingConfig){
     outfile.close();
 }
 
-void Locals::GaussianJump(int ntemps, int i_VMC, int ipop, Locals& force)
+void Locals::GaussianJump(int ntemps, bool i_VMC, int ipop, Locals& force)
 {
     double xgaus, x_old, force_old, x_new;
     vector<vector<double>> vec_comp;
@@ -97,15 +97,15 @@ void Locals::WalkerMatch(){
     newPage.push_back(auxil);
 }
 
- void Locals::SetZero(){
+void Locals::SetZero(){
     for (unsigned int i = 0; i < oldPage.size(); i++)
         oldPage[i].SetZero();
  }
 
- void Locals::PageSwap(){
+void Locals::PageSwap(){
      oldPage = newPage;
      newPage.clear();
- }
+}
 
 void Locals::PrintOld(){
     for (unsigned int i = 0; i < oldPage.size(); i++)
@@ -117,7 +117,7 @@ void Locals::PrintNew(){
         newPage[i].PrintConfig();
 }
 
-void Locals::PrintAll(const string & startingConfig, int in){
+void Locals::PrintAll(const string & startingConfig){
     fstream outfile(startingConfig, fstream::out );
     outfile<<num_walk<<"\n";
     outfile<<setprecision(18);

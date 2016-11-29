@@ -2,8 +2,10 @@
 #define DISTRR_H
 
 #include <cmath>
+#include <vector>
 #include "qmc.h"
 #include "Locals.h"
+#include "ConfigDistr.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -11,34 +13,26 @@
 using namespace std;
 
 class DistributionR{
+private:
+    ConfigDistr average, auxil;
+    vector<ConfigDistr> oldPage, newPage;
     int num_points;
     double step;
-    void setzero(double * x){
-        for(int i = 0; i < num_points+1; i++) x[i] = 0;
-    }
-
 public:
-    double *dr, *dra, *draMT;
-    double ***drlocal;
-
-    DistributionR(const CorFunParam& pair_distr);
-
+    DistributionR(const CorFunParam& param);
     void SetZero();
     void SetZeroAx();
-    void Accept();
-
-    void NotAccept(int ipop, int in);
-    void WalkerMatch(int jpop, int io);
+    void NotAccept(int ipop);
+    void WalkerMatch();
     void WalkerCollect(int nsons);
-    void NormalizationGR(int ngr, int ncomp, int np, double step);
-    void NormalizationNR(int ngr, float step);
+    void NormalizationGR(int nsons_total, const ParamModel& param);
+    void NormalizationNR(int nsons_total);
 
-    void PairDistrFirst(const Configuration& xMT, const ParamModel& param_model);    
+    void PairDistrFirst(const Configuration& xMT, const ParamModel& param_model);
     void PairDistrCross(const Configuration& xMT, const ParamModel& param_model);
     void DensityFirst(const Configuration& xMT, const ParamModel& param_model);
     void PrintDistr(const string& name_file);
-
-    ~DistributionR();
+    void PageSwap();
 };
 
 #endif // DISTRR_H

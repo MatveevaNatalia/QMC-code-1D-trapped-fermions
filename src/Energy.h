@@ -4,7 +4,62 @@
 #include "Locals.h"
 using namespace std;
 
-class EnergyVector
+class EnergyState
+{
+public:
+    double tot, pot, kin;
+    EnergyState(){
+        SetZero();
+    }
+    void SetZero();
+};
+
+
+class Energy{
+private:
+    EnergyState average, auxil, metrop, mean, average_part;
+    double average_walk;
+    vector<EnergyState> oldPage, newPage;
+public:
+    Energy();
+    void SetZeroAverage(){
+        average.SetZero();
+    }
+    void SetZeroMetrop(){
+        metrop.SetZero();
+    }
+    void SetZeroMean(){
+        mean.SetZero();
+    }
+    double GetAverageWalker(){
+        return average_walk;
+    }
+
+    double GetNewEnergy(){
+        return auxil.tot;
+    }
+    double GetOldEnergy(int i){
+        return oldPage[i].tot;
+    }
+    void Calc(Locals& coord, Configuration& FMT, const ParamModel& param_model);
+    void Accept();
+    void NotAccept(int ipop);
+    void WalkerMatch();
+    void WalkerCollect(int nsons);
+    void Normalization(const ParamModel& param_model, int jpop);
+    void Average();
+    void Print(int nwrite, int npopmean, int ntemps, const string & outDir);
+    void PageSwap();
+
+};
+
+
+
+
+
+
+
+/*class EnergyVector
 {
 public:
     double tot, pot, kin;
@@ -52,7 +107,7 @@ public:
     void Average();
     void Print(int nwrite, int npopmean, int ntemps, const string & outDir);
 
-};
+};*/
 
 double EnergyPartial(double xk, double xi, double scat_length);
 double ForcePartial(double xk, double xi, double scat_length);

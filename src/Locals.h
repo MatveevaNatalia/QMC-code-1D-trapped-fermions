@@ -2,7 +2,6 @@
 #define LOCALS_H
 
 #include "qmc.h"
-//#include "Energy.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -77,7 +76,7 @@ public:
 
     void ReadInitial(const string & startingConfig);
     void GenerateInitial(const string & startingConfig);
-    void GaussianJump(int ntemps, int i_VMC, int ipop, Locals& force);
+    void GaussianJump(int ntemps, bool i_VMC, int ipop, Locals& force);
     void Accept();
     void NotAccept(int ipop);
     void WalkerMatch();
@@ -85,7 +84,7 @@ public:
     void PageSwap();
     void PrintOld();
     void PrintNew();
-    void PrintAll(const string & startingConfig, int in);
+    void PrintAll(const string & startingConfig);
 
 };
 

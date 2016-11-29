@@ -1,7 +1,6 @@
 // Both for bosons and fermions,
 // h^2/(m a_osc^2) = 1, D = 1/2
 
-
 #include <iostream>
 #include <map>
 #include <fstream>
@@ -28,11 +27,11 @@ using namespace std;
 
 void run (const string & inFile, const string & startingConfig, const string & outDir )
 {
-    int ntemps, accepta, nacc, nprova, nwrite, nmean;
-    double accrate;
-    int in, io, ii, jpop, nsons, npopmean;
-    int nblck, niter, init;
-    int i_VMC, i_Drift, i_FNDMC, i_OBDM;
+    int ntemps, nacc, nprova, nwrite;
+    double acept_rate;
+    int jpop, nsons, npopmean;
+    int nblck, niter;
+    bool accept, init, i_VMC, i_Drift, i_FNDMC, i_OBDM;
 
     map<string, double> paramMap;
     paramMap = FillMap(inFile, outDir);
@@ -64,195 +63,182 @@ void run (const string & inFile, const string & startingConfig, const string & o
     OBDM obdm(obdm_param);
     MomentDistr moment_distr(mom_distr_param);
 
-    double nkuppt;
-    double *kr;
+    double n_rand_points;
+    int nsons_total;
 
-    int numks_temp = mom_distr_param.num_points;
-    kr = new double[numks_temp];
-    int ngr;
-
-    if(init == 1)
+    if(init)
         coordinates.ReadInitial(startingConfig);
     else
         coordinates.GenerateInitial(startingConfig);
 
     ntemps = 0;
-    in = 0;
-    io = 1;
-
     nacc = 0;
     nprova = 0;
+    npopmean = 0;
 
-    force.SetZero();
+    nsons_total = 0;
+    n_rand_points = 0;
 
-    for(int iblck = 0; iblck < nblck; iblck++)
+    for(int iter = 0; iter < niter*nblck; iter++)
     {
-        ngr = 0;
+        ntemps++;
+        energy.SetZeroAverage();
+        jpop = 0;
 
-        pair_distr.SetZero();
-        pair_distr_cross.SetZero();
-        obdm.SetZero();
-        dens_distr.SetZero();
-        moment_distr.SetZero();
-
-        nkuppt = 0;
-
-        for(int iter = 0; iter < niter; iter++)
+        for(int ipop = 0; ipop < param_model.num_walk; ipop++)
         {
 
-            ntemps = ntemps + 1;
+            // Same method
+            force.metrop.SetZero();
+            energy.SetZeroMetrop();
 
-            energy.SetZeroAverage();
+            pair_distr.SetZeroAx();
+            pair_distr_cross.SetZeroAx();
+            dens_distr.SetZeroAx();
+            obdm.SetZeroAx();
+            moment_distr.SetZeroAx();
+            // ----
 
-            jpop = 0;
+            coordinates.GaussianJump(ntemps, i_VMC, ipop, force);
+            wave_func.Calc(param_model, coordinates);
+            energy.Calc(coordinates, force.metrop, param_model);
 
-            for(int ipop = 0; ipop < param_model.num_walk; ipop++)
+            if(i_Drift)
+                accept = true;
+            else
+                accept = MetropolisDif(ipop, param_model, wave_func, coordinates, force, nprova, ntemps, i_VMC);
+
+            if(accept)
+            {
+                if(ntemps > 1)
+                    nacc ++;
+
+                // Same method
+                wave_func.Accept();
+                energy.Accept();
+                coordinates.Accept();
+                force.Accept();
+                // ---
+
+                // Same method
+                pair_distr.PairDistrFirst(coordinates.auxil, param_model);
+                pair_distr_cross.PairDistrCross(coordinates.auxil, param_model);
+                dens_distr.DensityFirst(coordinates.auxil, param_model);
+                // ----
+
+                if(i_OBDM)
+                    obdm.OBDM_Calc(param_model, coordinates.auxil, wave_func, moment_distr, mom_distr_param);
+            }
+            else
             {
 
-                force.metrop.SetZero();
-                energy.SetZeroMetrop();
-                energy.SetOldConf(ipop,in);
-
-                pair_distr.SetZeroAx();
-                pair_distr_cross.SetZeroAx();
-                dens_distr.SetZeroAx();
-                obdm.SetZeroAx();
-                moment_distr.SetZeroAx();
-
-                coordinates.GaussianJump(ntemps, i_VMC, ipop, force);
-                wave_func.Calc(param_model, coordinates);
-                energy.Calc(coordinates, force.metrop, param_model);
-
-                if(i_Drift == 0)                                    
-                     MetropolisDif(ipop, param_model, wave_func, coordinates, force, accepta, nprova, ntemps, in, i_VMC);
-
-                if(i_Drift == 1)                
-                    accepta = 1;
-
-                if(accepta == 1)
-                {
-                    if(ntemps > 1) nacc = nacc + 1;
-
-                    wave_func.Accept();
-                    energy.Accept();
-                    coordinates.Accept();
-                    force.Accept();
-
-                    pair_distr.PairDistrFirst(coordinates.auxil, param_model);
-                    pair_distr_cross.PairDistrCross(coordinates.auxil, param_model);
-                    dens_distr.DensityFirst(coordinates.auxil, param_model);
-
-                    if(i_OBDM == 1)
-                        obdm.OBDM_Calc(param_model, coordinates.auxil, wave_func, moment_distr, mom_distr_param);
-                }
-                else
-                {
-
-                    wave_func.NotAccept();
-                    energy.NotAccept();
-                    coordinates.NotAccept(ipop);
-                    force.NotAccept(ipop);
-                    pair_distr.NotAccept(ipop, io);
-                    pair_distr_cross.NotAccept(ipop, io);
-                    dens_distr.NotAccept(ipop, io);
-                    obdm.NotAccept(ipop);
-                    moment_distr.NotAccept(ipop);
-
-                }
-
-                if (i_FNDMC == 1)               
-                    nsons = BranchingCalc(param_model, energy, accepta, ntemps, nacc, nprova);
-                else
-                    nsons = 1;
-
-                if(nsons > 0)
-                {
-                    for(int js = 0; js < nsons; js++)
-                    {
-
-                        if(jpop >= dmnpop)                       
-                            cout <<"The population has grown too much!"<<"nsons="<<nsons<<"jpop="<<jpop<<"\n";
-
-                        energy.WalkerMatch(jpop, io);
-                        wave_func.WalkerMatch(jpop, io);
-                        coordinates.WalkerMatch();
-                        force.WalkerMatch();
-
-                        pair_distr.WalkerMatch(jpop, io);
-                        pair_distr_cross.WalkerMatch(jpop, io);
-                        dens_distr.WalkerMatch(jpop, io);
-                        obdm.WalkerMatch(jpop);
-                        moment_distr.WalkerMatch(jpop);
-
-                        jpop = jpop + 1;
-                    }
-                }
-
-                energy.WalkerCollect(nsons);
-
-                ngr = ngr + nsons;
-
-                pair_distr.WalkerCollect(nsons);
-                pair_distr_cross.WalkerCollect(nsons);
-                dens_distr.WalkerCollect(nsons);
-                obdm.WalkerCollect(nsons);
-                moment_distr.WalkerCollect(nsons);
-
-                nkuppt = nkuppt + nsons * 100; //Number of McMillan points
+                // Same method
+                wave_func.NotAccept(ipop);
+                energy.NotAccept(ipop);
+                coordinates.NotAccept(ipop);
+                force.NotAccept(ipop);
+                pair_distr.NotAccept(ipop);
+                pair_distr_cross.NotAccept(ipop);
+                dens_distr.NotAccept(ipop);
+                obdm.NotAccept(ipop);
+                moment_distr.NotAccept(ipop);
+                // ----
 
             }
 
-            param_model.num_walk = jpop;
+            if (i_FNDMC)
+                nsons = BranchingCalc(param_model, energy, accept, ntemps, nacc, nprova, ipop);
+            else
+                nsons = 1;
 
-            ii = in;
-            in = io;
-            io = ii;
+            if(nsons > 0)
+            {
+                for(int js = 0; js < nsons; js++)
+                {
 
-            coordinates.PageSwap();
-            force.PageSwap();
+                    if(jpop >= dmnpop)
+                        cout <<"The population has grown too much!"<<"nsons="<<nsons<<"jpop="<<jpop<<"\n";
 
-            energy.Normalization(param_model, jpop);
+                    energy.WalkerMatch();
+                    wave_func.WalkerMatch();
+                    coordinates.WalkerMatch();
+                    force.WalkerMatch();
+                    pair_distr.WalkerMatch();
+                    pair_distr_cross.WalkerMatch();
+                    dens_distr.WalkerMatch();
+                    obdm.WalkerMatch();
+                    moment_distr.WalkerMatch();
 
-            if(ntemps == 1)
-            {            
-                energy.SetZeroMean();
-                npopmean = 0;
-                nmean = 0;
+                    jpop++;
+                }
             }
 
-            nmean = nmean + 1;
-            energy.Average();
+            energy.WalkerCollect(nsons);
 
-            npopmean = npopmean + param_model.num_walk;
+            nsons_total += nsons;
 
-            if(nmean==nwrite)
-            {        
-                energy.Print(nwrite, npopmean, ntemps, outDir);
-                energy.SetZeroMean();
-                nmean = 0;
-                npopmean = 0;
-            }
+            pair_distr.WalkerCollect(nsons);
+            pair_distr_cross.WalkerCollect(nsons);
+            dens_distr.WalkerCollect(nsons);
+            obdm.WalkerCollect(nsons);
+            moment_distr.WalkerCollect(nsons);
+
+            n_rand_points += nsons * 100; //Number of McMillan points
+        }
+        param_model.num_walk = jpop;
+
+        coordinates.PageSwap();
+        force.PageSwap();
+        wave_func.PageSwap();
+        pair_distr.PageSwap();
+        pair_distr_cross.PageSwap();
+        dens_distr.PageSwap();
+        obdm.PageSwap();
+        moment_distr.PageSwap();
+        energy.PageSwap();
+
+        energy.Normalization(param_model, jpop);
+
+        energy.Average();
+        npopmean = npopmean + param_model.num_walk;
+
+        if(iter % nwrite == 0)
+        {
+            energy.Print(nwrite, npopmean, ntemps, outDir);
+            energy.SetZeroMean();
+            npopmean = 0;
         }
 
-        pair_distr.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
-        pair_distr_cross.NormalizationGR(ngr, param_model.num_comp, param_model.num_part, pair_distr_param.step);
+        if(iter % niter == 0)
+        {
 
-        pair_distr.PrintDistr( outDir + "/gr.dat");
-        pair_distr_cross.PrintDistr(outDir + "/gr_12.dat");
+            pair_distr.NormalizationGR(nsons_total, param_model);
+            pair_distr_cross.NormalizationGR(nsons_total, param_model);
 
-        dens_distr.NormalizationNR(ngr, dens_distr_param.step);
-        dens_distr.PrintDistr(outDir + "/nr.dat");
+            pair_distr.PrintDistr( outDir + "/gr.dat");
+            pair_distr_cross.PrintDistr(outDir + "/gr_12.dat");
 
-        obdm.Normalization();
-        obdm.PrintDistr(outDir + "/fr.dat");
+            dens_distr.NormalizationNR(nsons_total);
+            dens_distr.PrintDistr(outDir + "/nr.dat");
 
-        moment_distr.Normalization(param_model.num_part, nkuppt);
-        moment_distr.PrintDistr(outDir + "/nk.dat");
+            obdm.Normalization();
+            obdm.PrintDistr(outDir + "/fr.dat");
 
-        coordinates.PrintAll(startingConfig, in);
+            moment_distr.Normalization(param_model, n_rand_points);
+            moment_distr.PrintDistr(outDir + "/nk.dat");
 
-        accrate = 100.0 * float(nacc)/float(nprova);
-        PrintAcceptance(accrate, iblck, outDir);
+            coordinates.PrintAll(startingConfig);
+
+            acept_rate = 100.0 * float(nacc)/float(nprova);
+            PrintAcceptance(acept_rate, iter/niter, outDir);
+
+            pair_distr.SetZero();
+            pair_distr_cross.SetZero();
+            obdm.SetZero();
+            dens_distr.SetZero();
+            moment_distr.SetZero();
+            nsons_total = 0;
+            n_rand_points = 0;
+        }
     }
-    delete [] kr;
 }

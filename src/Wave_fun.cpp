@@ -6,16 +6,9 @@
 #include <cmath>
 using namespace std;
 
-WaveFunction::WaveFunction(){
-    flocal = new double*[dmnpop];
-    for(int i = 0; i < dmnpop; i++)
-        flocal[i] = new double[2];
-}
-
-WaveFunction::~WaveFunction(){
-    for(int i = 0; i < dmnpop; i++)
-        delete [] flocal[i];
-    delete [] flocal;
+void WaveFunction::PageSwap(){
+     oldPage = newPage;
+     newPage.clear();
 }
 
 void WaveFunction::Calc(const ParamModel& param_model, Locals& coordinates)
@@ -58,10 +51,8 @@ void WaveFunction::Calc(const ParamModel& param_model, Locals& coordinates)
         }
     }
 
-    fmetrop = PsiG + PsiJ1 + PsiJ2;
+    metrop = PsiG + PsiJ1 + PsiJ2;
 }
-
-//****************************************************************
 
 
 double WaveFunction::WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC)

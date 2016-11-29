@@ -1,63 +1,61 @@
-
 #include "OBDM.h"
 #include "Wave_fun.h"
 #include "Algorithm.h"
 
 using namespace std;
 
-OBDM::OBDM(const CorFunParam& obdm){
-    num_points = obdm.num_points;
-    step = obdm.step;
-    fr = new double[num_points+1];
-    fra = new double[num_points+1];
-    nfr = new double[num_points+1];
-    nfra = new double[num_points+1];
-
-    frlocal = new double*[num_points+1];
-    for(int i = 0; i < (num_points+1); i++) frlocal[i] = new double[dmnpop];
-
-    nfrlocal = new double*[num_points+1];
-    for(int i = 0; i < (num_points+1); i++) nfrlocal[i] = new double[dmnpop];
+OBDM::OBDM(const CorFunParam& param):
+    average(param.num_points),
+    auxil(param.num_points),
+    average_norm(param.num_points),
+    auxil_norm(param.num_points),
+    oldPage(dmnpop, ConfigDistr(param.num_points)),
+    oldPage_norm(dmnpop, ConfigDistr(param.num_points))
+{
+    num_points = param.num_points;
+    step = param.step;
 }
 
 void OBDM::SetZero(){
-    setzero(fr);
-    setzero(nfr);
+    average.setzero();
+    average_norm.setzero();
 }
 
 void OBDM::SetZeroAx(){
-    setzero(fra);
-    setzero(nfra);
+    auxil.setzero();
+    auxil_norm.setzero();
 }
 
 void OBDM::NotAccept(int ipop){
-    for(int i = 1; i < (num_points+1); i++)
-    {
-        fra[i] = frlocal[i][ipop];
-        nfra[i] = nfrlocal[i][ipop];
-    }
+    auxil = oldPage[ipop];
+    auxil_norm = oldPage_norm[ipop];
 }
 
-void OBDM::WalkerMatch(int jpop){
-    for(int i = 1; i < (num_points+1); i++)
-    {
-        frlocal[i][jpop] = fra[i];
-        nfrlocal[i][jpop] = nfra[i];
-    }
+void OBDM::WalkerMatch(){
+    newPage.push_back(auxil);
+    newPage_norm.push_back(auxil_norm);
 }
 
 void OBDM::WalkerCollect(int nsons){
-    for(int i = 1; i < (num_points+1); i++)
-    {
-
-        fr[i] = fr[i] + nsons * fra[i];
-        nfr[i] = nfr[i] + nsons * nfra[i];
+    for(int i = 1; i < (num_points+1); i++){
+        average[i] += nsons * auxil[i];
+        average_norm[i] += nsons * auxil_norm[i];
     }
 }
 
 void OBDM::Normalization(){
-    for (int ir = 1; ir < (num_points+1); ir++)
-        if(nfr[ir] > 0) fr[ir] = fr[ir]/float(nfr[ir]);
+    for (int i = 1; i < (num_points+1); i++){
+        if(average_norm[i] > 0)
+            average[i] = average[i]/float(average_norm[i]);
+    }
+}
+
+void OBDM::PageSwap(){
+     oldPage = newPage;
+     newPage.clear();
+     oldPage_norm = newPage_norm;
+     newPage_norm.clear();
+
 }
 
 void OBDM::PrintDistr(const string& name_file)
@@ -67,31 +65,14 @@ void OBDM::PrintDistr(const string& name_file)
     for(int i = 1; i < (num_points+1);i++)
     {
         coord_bin = float(i) * step + step/2.0;
-        outfile<<coord_bin<<" "<<fr[i]<<"\n";
+        outfile<<coord_bin<<" "<<average[i]<<"\n";
    }
     outfile.close();
 }
 
-
-OBDM::~OBDM(){
-    delete [] fr;
-    delete [] fra;
-    delete [] nfr;
-    delete [] nfra;
-
-    for(int i = 0; i < (num_points+1); i++)
-        delete [] frlocal[i];
-    delete [] frlocal;
-
-    for(int i = 0; i < (num_points+1); i++)
-        delete [] nfrlocal[i];
-    delete [] nfrlocal;
-}
-
-
 void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFunction & wave_func, MomentDistr& moment_distr, const CorFunParam&  mom_distr_param)
 {
-    double x1m, x1ax, r1ax; 
+    double x1m, x1ax, r1ax;
     double Psi_MC = 0.0;
     double quoc, prod;
     int ipmac, idr, num_MC = 0;
@@ -143,10 +124,10 @@ void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFu
             {
                 for(int j = i+1; j < np; j++)
                 {
-                    if(alpha == 0 && i == ipmac) {xi = x1m;}                 
+                    if(alpha == 0 && i == ipmac) {xi = x1m;}
                     else{xi = xaux.GetParticleComp(alpha, i);}
 
-                    if(alpha == 0 && j == ipmac) {xj = x1m;}                   
+                    if(alpha == 0 && j == ipmac) {xj = x1m;}
                     else{xj = xaux.GetParticleComp(alpha, j);}
 
                     dx = xi - xj;
@@ -159,19 +140,19 @@ void OBDM::OBDM_Calc( ParamModel& param_model, const Configuration& xaux, WaveFu
 
         if(r1ax < Lmax_ro)
         {
-            idr = int(fabs(r1ax)/step);
-            fra[idr] = fra[idr] + quoc;
-            nfra[idr] = nfra[idr] + 1;
+            idr = int(fabs(r1ax)/step);            
+            auxil[idr] += quoc;
+            auxil_norm[idr] ++;
         }
 
         for(int ik = 0; ik < mom_distr_param.num_points; ik++)
         {
             prod = x1ax * float(ik)*mom_distr_param.step;
-            moment_distr.dnkupa[ik] += cos(prod) * quoc;
+            moment_distr.auxil[ik] += cos(prod) * quoc;
         }
     }
-
 }
+
 
 
 

@@ -3,7 +3,7 @@
 
 #include "qmc.h"
 #include <string>
-
+#include "ConfigDistr.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -13,30 +13,21 @@ using namespace std;
 
 class MomentDistr{
 private:
+    ConfigDistr average;
+    vector<ConfigDistr> oldPage, newPage;
     int num_points;
     double step;
-    void setzero(double * x){
-        for(int i = 0; i < num_points; i++) x[i] = 0;
-    }
 public:
-    double *dnkup, *dnkupa, **dnkuplocal;
-
-    MomentDistr(const CorFunParam& mom_distr);
-
+    ConfigDistr auxil;
+    MomentDistr(const CorFunParam& param);
     void SetZero();
     void SetZeroAx();
-
     void NotAccept(int ipop);
-
-    void WalkerMatch(int jpop);
-
+    void WalkerMatch();
     void WalkerCollect(int nsons);
-
-    void Normalization(int np, int nkuppt);
-
+    void Normalization(const ParamModel& param, int norm);
     void PrintDistr(const string& name_file);
-
-    ~MomentDistr();
+    void PageSwap();
 };
 
 #endif // MOMDISTR_H

@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <iomanip>
 #include <fstream>
+#include <vector>
 using namespace std;
 
 map<string, double> FillMap(const string & inFile, const string & outDir){
@@ -27,13 +28,9 @@ void PrintAcceptance(double accrate, int iblck, const string & outDir){
 
 
 void Normalization(string name_file, string name_file_1, int num, int np, int nc)
-{
-    double * kk, *cor_fun, *cor_fun_err;
+{    
     double sum, dk, norm;
-
-    kk = new double[num];
-    cor_fun = new double[num];
-    cor_fun_err = new double[num];
+    vector<double> kk (num, 0.), cor_fun(num, 0.), cor_fun_err(num, 0.);
 
     fstream filestr(name_file, fstream::in | fstream::out);
     for (int i = 0; i< num; i++ )
@@ -41,7 +38,6 @@ void Normalization(string name_file, string name_file_1, int num, int np, int nc
         filestr >>setprecision(12)>> kk[i]>>cor_fun[i]>>cor_fun_err[i];
     }
     filestr.close();
-
 
     dk = kk[1]-kk[0];
     sum = 0;
@@ -60,7 +56,4 @@ void Normalization(string name_file, string name_file_1, int num, int np, int nc
     }
     outfile.close();
 
-    delete [] kk;
-    delete [] cor_fun;
-    delete [] cor_fun_err;
 }

@@ -3,39 +3,37 @@
 
 #include "qmc.h"
 #include "Locals.h"
+#include <vector>
 
 using namespace std;
 
 class WaveFunction{
 private:
-    double fmetrop, fnew, fold;
+    double metrop, auxil;
+    vector<double> oldPage, newPage;
 public:
-    double **flocal;
-    WaveFunction();
-    double GetOld(){
-        return fold;
+    double GetOld(int ipop){
+        return oldPage[ipop];
     }
     double GetMetrop(){
-        return fmetrop;
+        return metrop;
     }
     void Calc(const ParamModel& param_model, Locals& coordinates);
     void Accept(){
-        fnew = fmetrop;
+        auxil = metrop;
     }
-    void NotAccept(){
-        fnew = fold;
+    void NotAccept(int ipop){
+        auxil = oldPage[ipop];
     }
-    void WalkerMatch(int jpop, int io){
-        flocal[jpop][io] = fnew;
-    }
-    void SetOldZero(){
-        fold = 0.;
-    }
-    void SetOld(int ipop, int in){
-        fold = flocal[ipop][in];
+
+    void WalkerMatch(){
+        newPage.push_back(auxil);
     }
     double WaveFunction_MC(const ParamModel& param_model, const Configuration& xaux, int ipmac, double xm, int ncomp_MC);
-    ~WaveFunction();
+
+    void PageSwap();
+
 };
+
 
 #endif
